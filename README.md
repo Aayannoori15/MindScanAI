@@ -282,9 +282,28 @@ cd frontend && npm install && npm run dev
 
 Open <http://localhost:5173>. Verify with `curl localhost:8000/api/health` — it must report `"using_mock": false` and six loaded models.
 
-### Trained weights are NOT in the repo
+### Trained weights are included
 
-`*.pt` is gitignored and the speech checkpoint exceeds GitHub's 100 MB limit, so **a fresh clone starts in mock mode** (`using_mock: true`, `loaded: []`). That is expected. The full dataset and all training scripts *are* committed:
+The `.pt` files are committed, so a fresh clone runs the **real models** — no training
+step, no downloads. Confirm with:
+
+```bash
+curl localhost:8000/api/health
+# {"ok":true,"models_ready":true,"using_mock":false,
+#  "loaded":["facial_encoder","speech_encoder","classifier","depression","anxiety","stress"]}
+```
+
+If it reports `"using_mock": true`, the ML extras are missing — run
+`pip install -r requirements-ml.txt`. The loader falls back to a mock pipeline rather than
+crashing when PyTorch is unavailable.
+
+`speech_encoder.pt` stores only the fine-tuned layers (54 MB, not 360 MB); the frozen
+wav2vec2-base weights are fetched from HuggingFace on first construction and cached, so the
+**first run needs internet**. Predictions are bit-identical to the full checkpoint —
+verified at a maximum logit difference of `0.000e+00` by
+`training/slim_speech_checkpoint.py`.
+
+To retrain from scratch instead, the full dataset and all scripts are committed:
 
 ```bash
 python training/train_facial.py              # ~18 min on a GPU

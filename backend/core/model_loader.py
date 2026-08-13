@@ -13,6 +13,10 @@ from backend.core.dataset_spec import (
 )
 from backend.models.architectures import FacialEncoder, ScoreRegressor, SpeechEncoder, StatusClassifier
 
+# Marker written by training/slim_speech_checkpoint.py. Slim checkpoints omit
+# the frozen wav2vec2 weights, which from_pretrained() supplies at init.
+SLIM_MARKER = "__mindscan_slim__"
+
 
 class MockEncoder:
     """Deterministic fallback when trained weights are not yet placed."""
@@ -122,7 +126,14 @@ class ModelRegistry:
             # num_classes must match the checkpoint's classifier head shape (unused by
             # .encode(), which only runs backbone+attn+embed, but load_state_dict is strict).
             speech = SpeechEncoder(num_classes=len(STATUS_LABELS))
-            speech.load_state_dict(torch.load(present["speech_encoder"], map_location=self.device))
+            speech_ckpt = torch.load(present["speech_encoder"], map_location=self.device)
+            if isinstance(speech_ckpt, dict) and speech_ckpt.get(SLIM_MARKER):
+                # Slim checkpoint: only the fine-tuned layers and head were saved.
+                # The frozen wav2vec2 weights already came from HuggingFace when
+                # SpeechEncoder was constructed, so a partial load completes it.
+                speech.load_state_dict(speech_ckpt["state"], strict=False)
+            else:
+                speech.load_state_dict(speech_ckpt)
             speech.eval().to(self.device)
 
             self.facial_encoder = TorchEncoder(facial, self.device)
