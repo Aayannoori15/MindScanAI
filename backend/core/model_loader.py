@@ -1,13 +1,14 @@
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from backend.config import settings
-from backend.core.dataset_spec import STATUS_LABELS
+from backend.models.architectures import FacialEncoder, SpeechEncoder
 
 
 class MockEncoder:
-    """Deterministic fallback when teammate weights are not yet placed."""
+    """Deterministic fallback when trained weights are not yet placed."""
 
     def __init__(self, name: str, out_dim: int):
         self.name = name
@@ -25,11 +26,40 @@ class MockEncoder:
         return vec / n
 
 
+class TorchEncoder:
+    """Wraps a trained FacialEncoder/SpeechEncoder to match MockEncoder's .encode() contract."""
+
+    def __init__(self, model: torch.nn.Module, device: torch.device):
+        self.model = model
+        self.device = device
+
+    def encode(self, features: np.ndarray) -> np.ndarray:
+        x = torch.from_numpy(np.asarray(features, dtype=np.float32)).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            emb = self.model.encode(x)
+        return emb.squeeze(0).cpu().numpy()
+
+
 class ModelRegistry:
+    """Loads the trained facial/speech encoders (training/train_facial.py,
+    training/train_speech.py) when present.
+
+    The 4-class status and depression/anxiety/stress scores stay on the
+    hand-crafted heuristic engine (backend/core/inference/) rather than a
+    trained classifier/regressor: the accompanying tabular dataset
+    (dataset/mental_health_multimodal.csv) was benchmarked with both linear
+    correlation and a random forest, and its 18 feature columns carry no
+    measurable relationship to Mental_Health_Status or the D/A/S scores — a
+    model trained on it would just fit noise and land at/below a
+    majority-class or mean-value baseline. training/train_fusion.py is kept
+    for if a genuinely labeled tabular dataset becomes available later.
+    """
+
     def __init__(self):
         self.ready = False
         self.using_mock = True
         self.loaded: dict[str, Path] = {}
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.facial_encoder = MockEncoder("facial", 128)
         self.speech_encoder = MockEncoder("speech", 128)
         self.numerical_dim = 18
@@ -37,13 +67,8 @@ class ModelRegistry:
     def load(self) -> None:
         root = settings.models_path
         expected = {
-            "classifier": root / "classification" / "mental_health_classifier.pt",
             "facial_encoder": root / "classification" / "facial_encoder.pt",
             "speech_encoder": root / "classification" / "speech_encoder.pt",
-            "depression": root / "regression" / "depression_regressor.pt",
-            "anxiety": root / "regression" / "anxiety_regressor.pt",
-            "stress": root / "regression" / "stress_regressor.pt",
-            "fusion": root / "fusion" / "multimodal_fusion.pt",
         }
         present = {k: p for k, p in expected.items() if p.exists()}
         self.loaded = present
@@ -54,12 +79,20 @@ class ModelRegistry:
 
     def _load_torch(self, present: dict[str, Path]) -> None:
         try:
-            import torch
+            facial = FacialEncoder()
+            facial.load_state_dict(torch.load(present["facial_encoder"], map_location=self.device))
+            facial.eval().to(self.device)
 
-            self.torch_models = {k: torch.load(p, map_location="cpu") for k, p in present.items()}
+            speech = SpeechEncoder()
+            speech.load_state_dict(torch.load(present["speech_encoder"], map_location=self.device))
+            speech.eval().to(self.device)
+
+            self.facial_encoder = TorchEncoder(facial, self.device)
+            self.speech_encoder = TorchEncoder(speech, self.device)
         except Exception:
             self.using_mock = True
-            self.torch_models = {}
+            self.facial_encoder = MockEncoder("facial", 128)
+            self.speech_encoder = MockEncoder("speech", 128)
 
 
 registry = ModelRegistry()
