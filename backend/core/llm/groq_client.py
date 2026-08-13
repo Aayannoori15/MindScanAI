@@ -22,7 +22,7 @@ CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Whisper bills by audio duration and the UI records short reflections; this
 # also bounds worst-case latency on the assessment request.
-MAX_SECONDS = 120
+MAX_SECONDS = 20
 
 # Used when the primary model returns malformed JSON.
 JSON_FALLBACK_MODEL = "openai/gpt-oss-120b"

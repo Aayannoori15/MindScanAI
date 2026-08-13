@@ -17,7 +17,12 @@ export function useAssessment() {
       dispatch(setResult(result));
       nav("/results");
     } catch (e) {
-      dispatch(setError(e.message || "Assessment failed"));
+      const raw = e?.message || "Assessment failed";
+      const message =
+        raw === "Failed to fetch"
+          ? "The API did not respond. Wait until /api/health shows models_ready true, then try again. A long clip can also time out on Render — use a short recording."
+          : raw;
+      dispatch(setError(message));
     } finally {
       dispatch(setLoading(false));
     }

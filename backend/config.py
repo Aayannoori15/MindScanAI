@@ -27,7 +27,9 @@ class Settings(BaseSettings):
     groq_llm_api_key: str = ""
     groq_stt_model: str = "whisper-large-v3-turbo"
     groq_llm_model: str = "llama-3.3-70b-versatile"
-    groq_timeout_seconds: float = 30.0
+    groq_timeout_seconds: float = 8.0
+    # wav2vec2-base is ~400MB in RAM. Leave off on Render starter/standard.
+    load_speech_encoder: bool = False
 
     @property
     def groq_stt_ready(self) -> bool:

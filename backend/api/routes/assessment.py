@@ -150,13 +150,21 @@ async def run_assessment(
     )
     num_t, num_q = preprocess_numerical(req.numerical if "numerical" in used else None)
 
-    facial_emb = registry.facial_encoder.encode(face_t)
-    speech_emb = registry.speech_encoder.encode(speech_t)
+    try:
+        facial_emb = registry.facial_encoder.encode(face_t)
+        speech_emb = registry.speech_encoder.encode(speech_t)
+    except Exception:
+        from backend.core.model_loader import MockEncoder
 
-    # Real predictions from the trained classifier heads (70.3% FER / 67% RAVDESS).
-    # None when a modality wasn't submitted or the encoders are in mock mode.
-    face_pred = registry.predict_facial_emotion(face_t) if "facial" in used and face_bytes else None
-    speech_pred = registry.predict_speech_emotion(speech_t) if "speech" in used and speech_bytes else None
+        facial_emb = MockEncoder("facial", 128).encode(face_t)
+        speech_emb = MockEncoder("speech", 128).encode(speech_t)
+
+    try:
+        face_pred = registry.predict_facial_emotion(face_t) if "facial" in used and face_bytes else None
+        speech_pred = registry.predict_speech_emotion(speech_t) if "speech" in used and speech_bytes else None
+    except Exception:
+        face_pred = None
+        speech_pred = None
 
     fused, weights, confidence = fuse_modalities(
         facial_emb,
@@ -203,7 +211,10 @@ async def run_assessment(
     timeline = summarize_timeline([p.model_dump() for p in req.emotion_timeline])
     shap = shap_numerical(req.numerical.model_dump() if req.numerical else None, scores)
     lime = lime_speech(speech_q, req.language_hint)
-    grad = generate_gradcam(face_bytes if "facial" in used else None, face_tensor=face_t)
+    try:
+        grad = generate_gradcam(face_bytes if "facial" in used else None, face_tensor=face_t)
+    except Exception:
+        grad = {"available": False, "heatmap_png_b64": None, "focus": "Grad-CAM skipped."}
     flags = face_q["flags"] + speech_q["flags"] + num_q["flags"]
     explanation = build_report(status, scores, weights, shap, lime, grad, flags)
     wellness = personalized_wellness(

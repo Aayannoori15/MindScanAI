@@ -7,7 +7,6 @@ import torch
 import torchvision
 from torch import nn
 from torch.nn import functional as F
-from transformers import Wav2Vec2Model
 
 EMBED_DIM = 128
 NUM_FEATURES = 18
@@ -69,6 +68,8 @@ class SpeechEncoder(nn.Module):
     """
 
     def __init__(self, num_classes: int = 8, unfreeze_last_n_layers: int = 0):
+        from transformers import Wav2Vec2Model
+
         super().__init__()
         self.backbone = Wav2Vec2Model.from_pretrained(WAV2VEC2_CHECKPOINT)
         self.unfreeze_last_n_layers = unfreeze_last_n_layers
