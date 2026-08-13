@@ -1,0 +1,29 @@
+# Render Blueprint — Docker web service on Python 3.11 (not 3.14).
+# Dashboard: New → Blueprint → this repo. Or set PYTHON_VERSION=3.11.11 on an existing service.
+
+services:
+  - type: web
+    name: mindscan-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHONPATH
+        value: .
+      - key: APP_ENV
+        value: production
+      - key: USE_MOCK_INFERENCE
+        value: "false"
+      - key: ENABLE_GROQ
+        value: "true"
+      - key: GROQ_STT_MODEL
+        value: whisper-large-v3-turbo
+      - key: GROQ_LLM_MODEL
+        value: llama-3.3-70b-versatile
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GROQ_STT_API_KEY
+        sync: false
+      - key: GROQ_LLM_API_KEY
+        sync: false
