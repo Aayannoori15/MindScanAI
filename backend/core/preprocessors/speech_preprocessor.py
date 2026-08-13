@@ -14,24 +14,15 @@ def _raw_pcm(audio_bytes: bytes) -> np.ndarray:
 
 
 def _to_pcm(audio_bytes: bytes, sample_rate: int = 16000) -> tuple[np.ndarray, bool]:
-    """Decode arbitrary audio to mono float32 at `sample_rate`.
+    """Decode arbitrary audio to mono float32 at `sample_rate`."""
+    from backend.config import settings
 
-    Container formats must be decoded, not reinterpreted: a RAVDESS .wav is
-    48kHz with a 44-byte RIFF header, so treating its bytes as headerless
-    16kHz PCM feeds the model 3x-wrong-speed audio prefixed with header
-    garbage. That mismatch alone dropped the speech checkpoint from 67.1%
-    (training-time eval) to 25.4% at inference on the same clips.
-
-    Returns (samples, decoded) -- `decoded` is False when we fell back to
-    raw-PCM interpretation, which is the correct path for the browser's
-    headerless 16kHz capture.
-    """
     try:
         import soundfile as sf
 
         data, sr = sf.read(BytesIO(audio_bytes), dtype="float32", always_2d=True)
         mono = data.mean(axis=1)
-        if sr != sample_rate:
+        if sr != sample_rate and settings.neural_encoders_enabled:
             import librosa
 
             mono = librosa.resample(mono, orig_sr=sr, target_sr=sample_rate)
@@ -39,13 +30,14 @@ def _to_pcm(audio_bytes: bytes, sample_rate: int = 16000) -> tuple[np.ndarray, b
     except Exception:
         pass
 
-    try:
-        import librosa
+    if settings.neural_encoders_enabled:
+        try:
+            import librosa
 
-        mono, _ = librosa.load(BytesIO(audio_bytes), sr=sample_rate, mono=True)
-        return mono.astype(np.float32), True
-    except Exception:
-        pass
+            mono, _ = librosa.load(BytesIO(audio_bytes), sr=sample_rate, mono=True)
+            return mono.astype(np.float32), True
+        except Exception:
+            pass
 
     return _raw_pcm(audio_bytes), False
 
@@ -82,6 +74,10 @@ def preprocess_speech(
     speech_rate = float(np.clip(rms * 6, 0.4, 6.0))
 
     try:
+        from backend.config import settings as _settings
+
+        if not _settings.neural_encoders_enabled:
+            raise RuntimeError("skip librosa on small hosts")
         import librosa
 
         y = pcm.astype(np.float32)

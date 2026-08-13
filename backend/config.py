@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,8 +35,13 @@ class Settings(BaseSettings):
 
     @property
     def neural_encoders_enabled(self) -> bool:
-        if self.load_neural_encoders is not None:
-            return self.load_neural_encoders
+        if self.load_neural_encoders is True:
+            return True
+        if self.load_neural_encoders is False:
+            return False
+        # Render sets RENDER=true. Never import torch/cv2/librosa there unless forced.
+        if os.environ.get("RENDER"):
+            return False
         return self.app_env != "production"
 
     @property

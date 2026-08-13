@@ -10,12 +10,15 @@ router = APIRouter()
 
 @router.post("/analyze-face")
 async def analyze_face(frame: UploadFile = File(...)):
-    """Real 7-class FER emotion probabilities for a single webcam frame.
+    from backend.config import settings
 
-    The browser can't run the model, so live analysis posts frames here and
-    gets back the trained classifier's actual output. Returns available=False
-    rather than fabricating a distribution when no trained encoder is loaded.
-    """
+    if not settings.neural_encoders_enabled:
+        return {
+            "available": False,
+            "reason": "Face neural net is off on this host (memory).",
+            "quality": 0.0,
+            "flags": [],
+        }
     image_bytes = await frame.read()
     face_t, quality = preprocess_face(image_bytes)
     pred = registry.predict_facial_emotion(face_t)

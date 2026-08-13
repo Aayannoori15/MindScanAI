@@ -25,6 +25,10 @@ DETECT_SCORE_THRESHOLD = 0.7
 @lru_cache(maxsize=1)
 def _detector():
     """Loaded once and reused; returns None if OpenCV or the model is missing."""
+    from backend.config import settings
+
+    if not settings.neural_encoders_enabled:
+        return None
     try:
         import cv2
 

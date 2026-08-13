@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
@@ -278,13 +280,15 @@ async def _execute_assessment(payload, face, speech, db, user):
     # Language layer: the encoders read *how* someone sounds, this reads what
     # they actually said. Both are best-effort — a failure here degrades the
     # report rather than failing the assessment.
-    transcript = (
-        transcribe(speech_t)
-        if "speech" in used and speech_bytes
-        else {"available": False, "reason": "No audio submitted."}
-    )
+    # Groq is sync httpx — run it off the event loop so Render's 5s health
+    # probe can still be answered while an assessment is in flight.
+    if "speech" in used and speech_bytes:
+        transcript = await asyncio.to_thread(transcribe, speech_t)
+    else:
+        transcript = {"available": False, "reason": "No audio submitted."}
     insights = _build_insights(face_pred, speech_pred, speech_q, num_t, req, used, transcript=transcript)
-    ai_report = generate_report(
+    ai_report = await asyncio.to_thread(
+        generate_report,
         transcript=transcript,
         scores=scores,
         status=status,

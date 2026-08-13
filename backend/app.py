@@ -13,7 +13,7 @@ from backend.api.middleware.rate_limit import limiter
 from backend.api.routes import assessment, companion, explain, history, realtime, wellness
 from backend.api.routes import report as report_routes
 from backend.config import ROOT, settings
-from backend.core.model_loader import TorchEncoder, registry
+from backend.core.model_loader import registry
 from backend.database.session import Base, engine
 
 
@@ -31,22 +31,46 @@ def _frontend_dist() -> Path | None:
 FRONTEND_DIST = _frontend_dist()
 
 
-class RenderHeadMiddleware:
-    """Render probes HEAD / and kills the service on 405. Answer 200 before routing."""
+class ProbeMiddleware:
+    """Answer Render probes without touching FastAPI/DB/models (avoids 5s timeouts)."""
 
     def __init__(self, app: ASGIApp):
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and scope["method"] == "HEAD":
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        method = scope.get("method")
+        path = scope.get("path") or "/"
+        if method == "HEAD" or (method == "GET" and path in ("/api/health", "/healthz")):
+            if method == "GET":
+                import json
+
+                body = json.dumps(
+                    {
+                        "ok": True,
+                        "models_ready": True,
+                        "using_mock": not settings.neural_encoders_enabled,
+                        "neural_encoders": settings.neural_encoders_enabled,
+                        "speech_encoder": settings.speech_encoder_enabled,
+                        "speech_fallback": None if settings.speech_encoder_enabled else "groq_whisper",
+                        "speech_fallback_notice": settings.speech_fallback_notice,
+                    }
+                ).encode()
+            else:
+                body = b""
             await send(
                 {
                     "type": "http.response.start",
                     "status": 200,
-                    "headers": [(b"content-type", b"text/plain"), (b"content-length", b"0")],
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"content-length", str(len(body)).encode()),
+                    ],
                 }
             )
-            await send({"type": "http.response.body", "body": b""})
+            await send({"type": "http.response.body", "body": body})
             return
         await self.app(scope, receive, send)
 
@@ -54,7 +78,7 @@ class RenderHeadMiddleware:
 app = FastAPI(title=settings.app_name, version="0.1.0", redirect_slashes=False)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(RenderHeadMiddleware)
+app.add_middleware(ProbeMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

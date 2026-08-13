@@ -1,6 +1,7 @@
 #!/bin/sh
 # Bind 0.0.0.0:$PORT immediately. Render kills the service if this does not happen.
 set -e
+export PYTHONPATH="${PYTHONPATH:-$(pwd)}"
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
