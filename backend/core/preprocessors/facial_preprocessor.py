@@ -28,6 +28,7 @@ def _detector():
     try:
         import cv2
 
+        cv2.setLogLevel(cv2.LOG_LEVEL_ERROR)
         if not DETECTOR_PATH.exists():
             return None
         return cv2.FaceDetectorYN.create(

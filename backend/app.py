@@ -13,7 +13,7 @@ from backend.api.middleware.rate_limit import limiter
 from backend.api.routes import assessment, companion, explain, history, realtime, wellness
 from backend.api.routes import report as report_routes
 from backend.config import ROOT, settings
-from backend.core.model_loader import registry
+from backend.core.model_loader import TorchEncoder, registry
 from backend.database.session import Base, engine
 
 
@@ -39,17 +39,15 @@ class RenderHeadMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and scope["method"] == "HEAD":
-            path = scope.get("path") or "/"
-            if path in ("/", "", "/api/health"):
-                await send(
-                    {
-                        "type": "http.response.start",
-                        "status": 200,
-                        "headers": [(b"content-type", b"text/plain"), (b"content-length", b"0")],
-                    }
-                )
-                await send({"type": "http.response.body", "body": b""})
-                return
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [(b"content-type", b"text/plain"), (b"content-length", b"0")],
+                }
+            )
+            await send({"type": "http.response.body", "body": b""})
+            return
         await self.app(scope, receive, send)
 
 
@@ -77,7 +75,16 @@ app.include_router(companion.router, prefix="/api/companion", tags=["companion"]
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
-    threading.Thread(target=registry.load, name="mindscan-model-load", daemon=True).start()
+
+    def _deferred_load():
+        import time
+
+        # Importing torch blocks the GIL. Delay so Render's 5s GET health check
+        # can succeed before we touch the ML stack.
+        time.sleep(12)
+        registry.load()
+
+    threading.Thread(target=_deferred_load, name="mindscan-model-load", daemon=True).start()
 
 
 @app.get("/api/health")
@@ -87,6 +94,9 @@ def health():
         "models_ready": registry.ready,
         "using_mock": registry.using_mock,
         "loaded": list(registry.loaded.keys()),
+        "speech_encoder": isinstance(registry.speech_encoder, TorchEncoder),
+        "speech_fallback": None if settings.speech_encoder_enabled else "groq_whisper",
+        "speech_fallback_notice": settings.speech_fallback_notice,
         "frontend_dist": str(FRONTEND_DIST) if FRONTEND_DIST else None,
     }
 

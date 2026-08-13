@@ -1,4 +1,5 @@
 from pathlib import Path
+import threading
 
 import numpy as np
 
@@ -108,8 +109,17 @@ class ModelRegistry:
         self.classifier = None
         self.regressors = {}
         self.numerical_dim = 18
+        self._load_lock = threading.Lock()
 
     def load(self) -> None:
+        if self.ready:
+            return
+        with self._load_lock:
+            if self.ready:
+                return
+            self._load_unlocked()
+
+    def _load_unlocked(self) -> None:
         torch = _import_torch()
 
         # Render (and most laptops) run CPU inference. Forcing CPU avoids a CUDA
@@ -140,7 +150,7 @@ class ModelRegistry:
             self._load_facial(present_encoders["facial_encoder"])
         if (
             not settings.use_mock_inference
-            and settings.load_speech_encoder
+            and settings.speech_encoder_enabled
             and "speech_encoder" in present_encoders
         ):
             self._load_speech(present_encoders["speech_encoder"])

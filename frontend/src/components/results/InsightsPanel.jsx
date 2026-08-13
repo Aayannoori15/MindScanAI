@@ -96,49 +96,68 @@ export default function InsightsPanel({ insights }) {
 
         {speech &&
           (speech.available ? (
-            <div className="glass-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <AudioLines size={16} className="text-ink-200" />
-                <p className="text-sm font-medium text-white">Voice</p>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-4xl text-white">
-                  {speech.detected_status.replace("_", " ")}
-                </span>
-                <span className="text-sm text-ink-200"><span className="text-ink-50 font-semibold tabular-nums">{speech.confidence}%</span> confident</span>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-ink-300">Distress level</span>
-                  <span className="text-ink-50 font-semibold tabular-nums text-sm">{speech.distress_level}%</span>
-                </div>
-                <Bar pct={speech.distress_level} tone={distressTone(speech.distress_level)} />
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {speech.top_statuses.map((s) => (
-                  <div key={s.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-ink-300">{s.label.replace("_", " ")}</span>
-                      <span className="text-ink-200 tabular-nums font-medium">{s.probability}%</span>
-                    </div>
-                    <Bar pct={s.probability} />
-                  </div>
-                ))}
-              </div>
-
-              {speech.extracted_acoustics && (
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs border-t border-white/10 pt-3">
-                  {Object.entries(speech.extracted_acoustics).map(([k, v]) => (
-                    <div key={k} className="flex justify-between">
-                      <dt className="text-ink-300">{k.replace(/_/g, " ")}</dt>
-                      <dd className="text-ink-50 font-medium tabular-nums">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
+            <div className="space-y-3">
+              {speech.fallback_notice && (
+                <p className="text-xs text-ink-100 bg-white/[0.06] border border-white/15 rounded-lg px-3 py-2">
+                  {speech.fallback_notice}
+                </p>
               )}
-              <p className="text-[11px] text-ink-400 mt-4">{speech.source}</p>
+              <div className="glass-card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <AudioLines size={16} className="text-ink-200" />
+                  <p className="text-sm font-medium text-white">Voice</p>
+                </div>
+                {speech.detected_status ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-4xl text-white">
+                      {speech.detected_status.replace("_", " ")}
+                    </span>
+                    <span className="text-sm text-ink-200">
+                      <span className="text-ink-50 font-semibold tabular-nums">{speech.confidence}%</span> confident
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-ink-100 leading-relaxed">
+                    {speech.transcript_preview || "Audio was sent to Groq Whisper for transcription."}
+                  </p>
+                )}
+
+                {speech.distress_level != null && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-ink-300">Distress level</span>
+                      <span className="text-ink-50 font-semibold tabular-nums text-sm">{speech.distress_level}%</span>
+                    </div>
+                    <Bar pct={speech.distress_level} tone={distressTone(speech.distress_level)} />
+                  </div>
+                )}
+
+                {speech.top_statuses?.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {speech.top_statuses.map((s) => (
+                      <div key={s.label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-ink-300">{s.label.replace("_", " ")}</span>
+                          <span className="text-ink-200 tabular-nums font-medium">{s.probability}%</span>
+                        </div>
+                        <Bar pct={s.probability} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {speech.extracted_acoustics && (
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs border-t border-white/10 pt-3">
+                    {Object.entries(speech.extracted_acoustics).map(([k, v]) => (
+                      <div key={k} className="flex justify-between">
+                        <dt className="text-ink-300">{k.replace(/_/g, " ")}</dt>
+                        <dd className="text-ink-50 font-medium tabular-nums">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                <p className="text-[11px] text-ink-400 mt-4">{speech.source}</p>
+              </div>
             </div>
           ) : (
             <Unavailable icon={AudioLines} title="Voice" reason={speech.reason} />

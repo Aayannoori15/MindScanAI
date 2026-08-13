@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FacialCapture from "../components/assessment/FacialCapture";
 import SpeechRecorder from "../components/assessment/SpeechRecorder";
@@ -7,6 +8,7 @@ import ProgressStepper from "../components/assessment/ProgressStepper";
 import LoadingPulse from "../components/shared/LoadingPulse";
 import { setLanguageHint, setStep } from "../store/assessmentSlice";
 import { useAssessment } from "../hooks/useAssessment";
+import { fetchHealth } from "../api/assessmentApi";
 import PageHeader from "../components/layout/PageHeader";
 import PageTransition, { Reveal } from "../components/layout/PageTransition";
 
@@ -14,6 +16,15 @@ export default function Assessment() {
   const dispatch = useDispatch();
   const { step, modalities, loading, error, submit } = useAssessment();
   const languageHint = useSelector((s) => s.assessment.languageHint);
+  const [speechNotice, setSpeechNotice] = useState(null);
+
+  useEffect(() => {
+    fetchHealth()
+      .then((h) => {
+        if (h?.speech_fallback_notice) setSpeechNotice(h.speech_fallback_notice);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <PageTransition className="max-w-4xl mx-auto">
@@ -26,6 +37,11 @@ export default function Assessment() {
       </Reveal>
       <div className="mt-8" />
       <ProgressStepper step={step} />
+      {speechNotice && (
+        <p className="text-sm text-ink-100 bg-white/[0.06] border border-white/15 rounded-xl px-4 py-3 mb-6">
+          {speechNotice}
+        </p>
+      )}
 
       {step === 0 && (
         <div className="space-y-6">

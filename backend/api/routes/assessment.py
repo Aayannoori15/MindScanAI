@@ -20,6 +20,7 @@ from backend.core.dataset_spec import (
     NUMERICAL_FEATURE_KEYS,
     STATUS_LABELS,
 )
+from backend.config import settings
 from backend.core.model_loader import registry
 from backend.core.llm.groq_client import generate_report, transcribe
 from backend.core.timeutil import iso_utc
@@ -37,7 +38,7 @@ from backend.features.wellness_engine import personalized_wellness
 router = APIRouter()
 
 
-def _build_insights(face_pred, speech_pred, speech_q, num_t, req, used) -> dict:
+def _build_insights(face_pred, speech_pred, speech_q, num_t, req, used, transcript=None) -> dict:
     """Per-modality account of what was actually detected in this submission.
 
     Everything here is derived from the current request -- model outputs,
@@ -71,6 +72,7 @@ def _build_insights(face_pred, speech_pred, speech_q, num_t, req, used) -> dict:
             }
             insights["speech"] = {
                 "available": True,
+                "pipeline": "wav2vec2",
                 "source": "Fine-tuned wav2vec2-base (67.1% unseen-speaker accuracy, 4 classes)",
                 "detected_status": speech_pred["status"],
                 "confidence": round(speech_pred["confidence"] * 100, 1),
@@ -78,8 +80,33 @@ def _build_insights(face_pred, speech_pred, speech_q, num_t, req, used) -> dict:
                 "top_statuses": [{"label": k, "probability": round(v * 100, 1)} for k, v in top],
                 "extracted_acoustics": acoustics,
             }
+        elif transcript and transcript.get("available"):
+            from backend.config import settings as _settings
+
+            insights["speech"] = {
+                "available": True,
+                "pipeline": "groq_whisper",
+                "fallback": True,
+                "fallback_notice": _settings.speech_fallback_notice
+                or "Speech neural net is off; audio was transcribed with Groq Whisper.",
+                "source": "Groq Whisper (speech-to-text fallback — wav2vec2 not loaded on this host)",
+                "transcript_preview": (transcript.get("text") or "")[:280],
+                "detected_status": None,
+                "confidence": None,
+                "distress_level": None,
+                "top_statuses": [],
+            }
         else:
-            insights["speech"] = {"available": False, "reason": "No audio submitted, or encoder in mock mode."}
+            reason = "No audio submitted."
+            if transcript and not transcript.get("available"):
+                reason = transcript.get("reason") or reason
+            elif not speech_pred:
+                from backend.config import settings as _settings
+
+                reason = _settings.speech_fallback_notice or (
+                    "Speech neural net is not loaded on this host. Groq transcription was also unavailable."
+                )
+            insights["speech"] = {"available": False, "pipeline": "none", "reason": reason}
 
     if "numerical" in used and req.numerical is not None:
         raw = req.numerical.model_dump()
@@ -228,12 +255,12 @@ async def run_assessment(
     # Language layer: the encoders read *how* someone sounds, this reads what
     # they actually said. Both are best-effort — a failure here degrades the
     # report rather than failing the assessment.
-    insights = _build_insights(face_pred, speech_pred, speech_q, num_t, req, used)
     transcript = (
         transcribe(speech_t)
         if "speech" in used and speech_bytes
         else {"available": False, "reason": "No audio submitted."}
     )
+    insights = _build_insights(face_pred, speech_pred, speech_q, num_t, req, used, transcript=transcript)
     ai_report = generate_report(
         transcript=transcript,
         scores=scores,
@@ -269,6 +296,8 @@ async def run_assessment(
         "status_probs": {k: float(v) for k, v in zip(STATUS_LABELS, probs)},
         "dataset_hints": {"facial": face_q.get("emotion"), "speech": (speech_q.get("ravdess") or {}).get("emotion")},
         "using_mock_models": registry.using_mock,
+        "speech_pipeline": "wav2vec2" if speech_pred else ("groq_whisper" if transcript.get("available") else "none"),
+        "speech_fallback_notice": None if speech_pred else settings.speech_fallback_notice,
         "using_trained_tabular_model": predicted_scores is not None and predicted_status is not None,
         "insights": insights,
         "scores": {

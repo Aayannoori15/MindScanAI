@@ -28,8 +28,25 @@ class Settings(BaseSettings):
     groq_stt_model: str = "whisper-large-v3-turbo"
     groq_llm_model: str = "llama-3.3-70b-versatile"
     groq_timeout_seconds: float = 8.0
-    # wav2vec2-base is ~400MB in RAM. Leave off on Render starter/standard.
-    load_speech_encoder: bool = False
+    # None = auto: load wav2vec2 locally (APP_ENV=development), skip on production
+    # hosts (Render 1GB). Override with LOAD_SPEECH_ENCODER=true|false.
+    load_speech_encoder: bool | None = None
+
+    @property
+    def speech_encoder_enabled(self) -> bool:
+        if self.load_speech_encoder is not None:
+            return self.load_speech_encoder
+        return self.app_env != "production"
+
+    @property
+    def speech_fallback_notice(self) -> str | None:
+        if self.speech_encoder_enabled:
+            return None
+        return (
+            "This host does not load the wav2vec2 speech neural net — it needs about 400MB of RAM "
+            "and would crash a 1GB Render instance. Your audio is transcribed with Groq Whisper instead. "
+            "On your laptop the speech encoder still runs."
+        )
 
     @property
     def groq_stt_ready(self) -> bool:

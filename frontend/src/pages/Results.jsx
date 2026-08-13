@@ -49,6 +49,14 @@ export default function Results() {
         />
       </Reveal>
 
+      {result.speech_fallback_notice && (
+        <Reveal>
+          <p className="text-sm text-ink-100 bg-white/[0.06] border border-white/15 rounded-xl px-4 py-3">
+            {result.speech_fallback_notice}
+          </p>
+        </Reveal>
+      )}
+
       {result.using_mock_models && (
         <Reveal>
           <p className="text-xs text-ink-200 bg-white/[0.05] border border-white/15 rounded-xl px-3 py-2">
