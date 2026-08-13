@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from backend.config import settings
 from backend.core.dataset_spec import (
@@ -11,7 +10,6 @@ from backend.core.dataset_spec import (
     STATUS_LABELS,
     STATUS_SEVERITY,
 )
-from backend.models.architectures import FacialEncoder, ScoreRegressor, SpeechEncoder, StatusClassifier
 
 # Marker written by training/slim_speech_checkpoint.py. Slim checkpoints omit
 # the frozen wav2vec2 weights, which from_pretrained() supplies at init.
@@ -37,14 +35,22 @@ class MockEncoder:
         return vec / n
 
 
+def _import_torch():
+    """Import torch only when weights are loaded, so uvicorn can bind first."""
+    import torch
+
+    return torch
+
+
 class TorchEncoder:
     """Wraps a trained FacialEncoder/SpeechEncoder to match MockEncoder's .encode() contract."""
 
-    def __init__(self, model: torch.nn.Module, device: torch.device):
+    def __init__(self, model, device):
         self.model = model
         self.device = device
 
     def encode(self, features: np.ndarray) -> np.ndarray:
+        torch = _import_torch()
         x = torch.from_numpy(np.asarray(features, dtype=np.float32)).unsqueeze(0).to(self.device)
         with torch.no_grad():
             emb = self.model.encode(x)
@@ -52,6 +58,7 @@ class TorchEncoder:
 
     def classify(self, features: np.ndarray) -> np.ndarray:
         """Class probabilities from the encoder's trained classifier head."""
+        torch = _import_torch()
         x = torch.from_numpy(np.asarray(features, dtype=np.float32)).unsqueeze(0).to(self.device)
         with torch.no_grad():
             probs = torch.softmax(self.model(x), dim=1)
@@ -85,14 +92,19 @@ class ModelRegistry:
         self.ready = False
         self.using_mock = True
         self.loaded: dict[str, Path] = {}
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = None
         self.facial_encoder = MockEncoder("facial", 128)
         self.speech_encoder = MockEncoder("speech", 128)
-        self.classifier: StatusClassifier | None = None
-        self.regressors: dict[str, ScoreRegressor] = {}
+        self.classifier = None
+        self.regressors = {}
         self.numerical_dim = 18
 
     def load(self) -> None:
+        torch = _import_torch()
+
+        # Render (and most laptops) run CPU inference. Forcing CPU avoids a CUDA
+        # init hang when pip installed the default GPU wheel.
+        self.device = torch.device("cpu")
         root = settings.models_path
         encoder_paths = {
             "facial_encoder": root / "classification" / "facial_encoder.pt",
@@ -118,8 +130,11 @@ class ModelRegistry:
         self.ready = True
 
     def _load_encoders(self, present: dict[str, Path]) -> None:
+        torch = _import_torch()
+        from backend.models.architectures import FacialEncoder, SpeechEncoder
+
         try:
-            facial = FacialEncoder()
+            facial = FacialEncoder(pretrained=False)
             facial.load_state_dict(torch.load(present["facial_encoder"], map_location=self.device))
             facial.eval().to(self.device)
 
@@ -144,6 +159,9 @@ class ModelRegistry:
             self.speech_encoder = MockEncoder("speech", 128)
 
     def _load_tabular(self, present: dict[str, Path]) -> None:
+        torch = _import_torch()
+        from backend.models.architectures import ScoreRegressor, StatusClassifier
+
         try:
             classifier = StatusClassifier(num_classes=len(STATUS_LABELS))
             classifier.load_state_dict(torch.load(present["classifier"], map_location=self.device))
@@ -166,6 +184,7 @@ class ModelRegistry:
         """Trained 4-class classifier prediction, or None to fall back to the heuristic."""
         if self.classifier is None:
             return None
+        torch = _import_torch()
         x = torch.from_numpy(np.asarray(numerical, dtype=np.float32)).unsqueeze(0).to(self.device)
         with torch.no_grad():
             probs = torch.softmax(self.classifier(x), dim=1).squeeze(0).cpu().numpy()
@@ -175,6 +194,7 @@ class ModelRegistry:
         """Trained depression/anxiety/stress regressor predictions, or None to fall back to the heuristic."""
         if not self.regressors:
             return None
+        torch = _import_torch()
         x = torch.from_numpy(np.asarray(numerical, dtype=np.float32)).unsqueeze(0).to(self.device)
         scores = {}
         with torch.no_grad():

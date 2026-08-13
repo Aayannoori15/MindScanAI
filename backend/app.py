@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -38,8 +39,10 @@ app.include_router(companion.router, prefix="/api/companion", tags=["companion"]
 
 @app.on_event("startup")
 def startup():
+    # Bind the HTTP port immediately. Loading wav2vec2 / ResNet in this
+    # handler would block uvicorn's lifespan, so Render never sees an open port.
     Base.metadata.create_all(bind=engine)
-    registry.load()
+    threading.Thread(target=registry.load, name="mindscan-model-load", daemon=True).start()
 
 
 @app.get("/api/health")

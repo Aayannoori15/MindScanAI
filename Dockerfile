@@ -11,7 +11,9 @@ WORKDIR /app
 COPY requirements.txt requirements-ml.txt ./
 COPY backend/requirements.txt backend/requirements.txt
 COPY backend/requirements-ml.txt backend/requirements-ml.txt
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements-ml.txt
 
 COPY backend backend
 COPY frontend frontend
