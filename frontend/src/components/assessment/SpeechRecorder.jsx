@@ -22,20 +22,20 @@ export default function SpeechRecorder() {
   return (
     <div className="space-y-4">
       <SpeechWaveform active={recording} />
-      <p className="text-sm text-white/50">
-        Record speech, or upload a RAVDESS clip named like <code className="text-teal/90">03-01-06-01-02-01-12.wav</code> so
+      <p className="text-sm text-neutral-500">
+        Record speech, or upload a RAVDESS clip named like <code className="text-neutral-700">03-01-06-01-02-01-12.wav</code> so
         emotion/intensity/actor metadata is parsed.
       </p>
       {error && <p className="text-sm text-rose">{error}</p>}
       <button
         onClick={recording ? stop : start}
-        className={`w-full py-2.5 ${recording ? "pill-btn bg-rose text-white hover:brightness-110" : "pill-btn-solid"}`}
+        className={`btn-drop w-full ${recording ? "bg-neutral-700 text-white" : "btn-drop-solid"}`}
       >
         {recording ? "Stop recording" : blob ? "Record again" : "Start recording"}
       </button>
-      <label className="block text-xs text-white/40">
+      <label className="block text-xs text-neutral-400">
         Upload RAVDESS .wav
-        <input type="file" accept="audio/*" onChange={onFile} className="mt-1 block w-full text-white/60" />
+        <input type="file" accept="audio/*" onChange={onFile} className="mt-1 block w-full text-neutral-600" />
       </label>
     </div>
   );

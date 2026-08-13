@@ -95,18 +95,18 @@ export default function FacialCapture() {
       {error && (
         <div className="text-sm text-rose space-y-2">
           <p>{error}</p>
-          <p className="text-white/40">You can continue without a face frame, or</p>
-          <button onClick={start} className="pill-btn-ghost py-1.5 px-4 text-xs">
+          <p className="text-neutral-400">You can continue without a face frame, or</p>
+          <button onClick={start} className="btn-drop btn-drop-light py-1.5 px-4 text-xs">
             Try again
           </button>
         </div>
       )}
-      <button onClick={snap} disabled={!ready} className="w-full pill-btn-primary py-2.5">
+      <button onClick={snap} disabled={!ready} className="w-full btn-drop btn-drop-solid disabled:opacity-40">
         {saved ? "Retake still" : "Capture 48×48 grayscale still"}
       </button>
-      <label className="block text-xs text-white/40">
+      <label className="block text-xs text-neutral-400">
         Upload FER image (include the class in the filename: angry, fear, happy…)
-        <input type="file" accept="image/*" onChange={onFile} className="mt-1 block w-full text-white/60" />
+        <input type="file" accept="image/*" onChange={onFile} className="mt-1 block w-full text-neutral-600" />
       </label>
     </div>
   );

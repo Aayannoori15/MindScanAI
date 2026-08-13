@@ -66,16 +66,16 @@ export default function Assessment() {
         <button
           disabled={step === 0}
           onClick={() => dispatch(setStep(Math.max(0, step - 1)))}
-          className="pill-btn-ghost"
+          className="btn-drop btn-drop-light disabled:opacity-40"
         >
           Back
         </button>
         {step < 2 ? (
-          <button onClick={() => dispatch(setStep(step + 1))} className="pill-btn-primary">
+          <button onClick={() => dispatch(setStep(step + 1))} className="btn-drop btn-drop-solid">
             Continue
           </button>
         ) : (
-          <button onClick={submit} disabled={loading || !modalities.length} className="pill-btn-solid">
+          <button onClick={submit} disabled={loading || !modalities.length} className="btn-drop btn-drop-solid disabled:opacity-40">
             Run MindScan
           </button>
         )}
