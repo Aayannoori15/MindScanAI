@@ -334,6 +334,21 @@ def train_finetuned(
     return model, metrics
 
 
+
+def save_checkpoint(model, path, unfreeze_last_n):
+    """Persist only what training changed.
+
+    The frozen wav2vec2 weights are byte-identical to the HuggingFace
+    checkpoint that SpeechEncoder pulls at construction, so storing them again
+    costs ~306 MB and pushes the file past GitHub's 100 MB limit for nothing.
+    See training/slim_speech_checkpoint.py.
+    """
+    from training.slim_speech_checkpoint import slim_state_dict
+
+    torch.save(slim_state_dict(model.state_dict(), unfreeze_last_n), path)
+    print(f"saved {path} ({path.stat().st_size / 1048576:.0f} MB, slim)")
+
+
 def main():
     samples = build_samples()
     train_s, val_s, test_s = split_samples(samples)
@@ -368,10 +383,10 @@ def main():
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     if finetuned_metrics["accuracy"] >= frozen_metrics["accuracy"]:
         print(f"\n-> fine-tuned model wins on test accuracy ({finetuned_metrics['accuracy']:.4f} >= {frozen_metrics['accuracy']:.4f}), saving it")
-        torch.save(finetuned_model.state_dict(), OUT_PATH)
+        save_checkpoint(finetuned_model, OUT_PATH, UNFREEZE_LAST_N_LAYERS)
     else:
         print(f"\n-> frozen baseline wins on test accuracy ({frozen_metrics['accuracy']:.4f} > {finetuned_metrics['accuracy']:.4f}), saving it")
-        torch.save(frozen_model.state_dict(), OUT_PATH)
+        save_checkpoint(frozen_model, OUT_PATH, 0)
     print(f"saved {OUT_PATH}")
 
 

@@ -4,7 +4,9 @@ __pycache__/
 venv/
 .env
 mindscan.db
-*.pt
+# Model weights ARE committed: every file is under GitHub's 100MB limit
+# (speech_encoder.pt is slimmed by training/slim_speech_checkpoint.py), so a
+# fresh clone runs the real models instead of the mock pipeline.
 data/
 node_modules/
 frontend/dist/
@@ -16,3 +18,9 @@ Screen Recording*.mov
 
 # MediaPipe WASM runtime is copied out of node_modules by frontend postinstall.
 frontend/public/mediapipe-wasm/
+
+# Weight bundle for out-of-band transfer to teammates.
+mindscan-weights.zip
+
+# Machine-local Claude Code settings
+.claude/
