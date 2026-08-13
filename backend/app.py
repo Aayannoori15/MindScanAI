@@ -1,9 +1,9 @@
 import threading
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -45,7 +45,7 @@ def startup():
     threading.Thread(target=registry.load, name="mindscan-model-load", daemon=True).start()
 
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health():
     return {
         "ok": True,
@@ -59,16 +59,24 @@ def _spa_index():
     return FileResponse(FRONTEND_DIST / "index.html")
 
 
+@app.api_route("/", methods=["GET", "HEAD"])
+def spa_root(request: Request):
+    # Render probes HEAD / ; a GET-only route returns 405 and the deploy is killed.
+    if request.method == "HEAD":
+        return Response(status_code=200)
+    if FRONTEND_DIST.is_dir():
+        return _spa_index()
+    return {"ok": True, "service": "mindscan"}
+
+
 if FRONTEND_DIST.is_dir():
 
-    @app.get("/")
-    def spa_root():
-        return _spa_index()
-
-    @app.get("/{full_path:path}")
-    def spa_fallback(full_path: str):
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
+    def spa_fallback(full_path: str, request: Request):
         if full_path.startswith("api"):
             raise HTTPException(status_code=404, detail="Not Found")
+        if request.method == "HEAD":
+            return Response(status_code=200)
         target = FRONTEND_DIST / full_path
         if target.is_file():
             return FileResponse(target)
