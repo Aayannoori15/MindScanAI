@@ -17,10 +17,9 @@ export function useAssessment() {
       dispatch(setResult(result));
       nav("/results");
     } catch (e) {
-      const raw = e?.message || "Assessment failed";
-      const message =
-        raw === "Failed to fetch"
-          ? "The API did not respond. Wait until /api/health shows models_ready true, then try again. A long clip can also time out on Render — use a short recording."
+      const raw = String(e?.message || "Assessment failed");
+      const message = /failed to fetch|networkerror|load failed/i.test(raw)
+          ? "The server dropped the request (often out of memory). After this deploy, Render will not load PyTorch — try Run MindScan again."
           : raw;
       dispatch(setError(message));
     } finally {

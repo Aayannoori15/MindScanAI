@@ -28,12 +28,20 @@ class Settings(BaseSettings):
     groq_stt_model: str = "whisper-large-v3-turbo"
     groq_llm_model: str = "llama-3.3-70b-versatile"
     groq_timeout_seconds: float = 8.0
-    # None = auto: load wav2vec2 locally (APP_ENV=development), skip on production
-    # hosts (Render 1GB). Override with LOAD_SPEECH_ENCODER=true|false.
+    # None = auto: load PyTorch nets locally, skip on production (Render 1GB).
     load_speech_encoder: bool | None = None
+    load_neural_encoders: bool | None = None
+
+    @property
+    def neural_encoders_enabled(self) -> bool:
+        if self.load_neural_encoders is not None:
+            return self.load_neural_encoders
+        return self.app_env != "production"
 
     @property
     def speech_encoder_enabled(self) -> bool:
+        if not self.neural_encoders_enabled:
+            return False
         if self.load_speech_encoder is not None:
             return self.load_speech_encoder
         return self.app_env != "production"
@@ -43,9 +51,9 @@ class Settings(BaseSettings):
         if self.speech_encoder_enabled:
             return None
         return (
-            "This host does not load the wav2vec2 speech neural net — it needs about 400MB of RAM "
-            "and would crash a 1GB Render instance. Your audio is transcribed with Groq Whisper instead. "
-            "On your laptop the speech encoder still runs."
+            "This 1GB host does not load PyTorch speech or face networks (they would run out of memory). "
+            "Audio is transcribed with Groq Whisper; face and scores use the lightweight heuristic path. "
+            "The full neural nets still run on your laptop."
         )
 
     @property

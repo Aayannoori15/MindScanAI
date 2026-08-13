@@ -60,7 +60,14 @@ def _build_insights(face_pred, speech_pred, speech_q, num_t, req, used, transcri
                 "top_emotions": [{"label": k, "probability": round(v * 100, 1)} for k, v in top],
             }
         else:
-            insights["facial"] = {"available": False, "reason": "No face frame submitted, or encoder in mock mode."}
+            insights["facial"] = {
+                "available": False,
+                "reason": (
+                    settings.speech_fallback_notice
+                    if not settings.neural_encoders_enabled
+                    else "No face frame submitted, or encoder in mock mode."
+                ),
+            }
 
     if "speech" in used:
         if speech_pred:
@@ -161,6 +168,15 @@ async def run_assessment(
     db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
+    try:
+        return await _execute_assessment(payload, face, speech, db, user)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+
+
+async def _execute_assessment(payload, face, speech, db, user):
     req = AssessmentRequest.model_validate_json(payload)
     used = [m for m in req.modalities if m in {"facial", "speech", "numerical"}]
     if not used:
@@ -238,10 +254,17 @@ async def run_assessment(
     timeline = summarize_timeline([p.model_dump() for p in req.emotion_timeline])
     shap = shap_numerical(req.numerical.model_dump() if req.numerical else None, scores)
     lime = lime_speech(speech_q, req.language_hint)
-    try:
-        grad = generate_gradcam(face_bytes if "facial" in used else None, face_tensor=face_t)
-    except Exception:
-        grad = {"available": False, "heatmap_png_b64": None, "focus": "Grad-CAM skipped."}
+    if settings.neural_encoders_enabled:
+        try:
+            grad = generate_gradcam(face_bytes if "facial" in used else None, face_tensor=face_t)
+        except Exception:
+            grad = {"available": False, "heatmap_png_b64": None, "focus": "Grad-CAM skipped."}
+    else:
+        grad = {
+            "available": False,
+            "heatmap_png_b64": None,
+            "focus": "Grad-CAM needs PyTorch, which is disabled on this 1GB host.",
+        }
     flags = face_q["flags"] + speech_q["flags"] + num_q["flags"]
     explanation = build_report(status, scores, weights, shap, lime, grad, flags)
     wellness = personalized_wellness(

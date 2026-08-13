@@ -75,16 +75,17 @@ app.include_router(companion.router, prefix="/api/companion", tags=["companion"]
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    if settings.neural_encoders_enabled:
+        def _deferred_load():
+            import time
 
-    def _deferred_load():
-        import time
+            time.sleep(12)
+            registry.load()
 
-        # Importing torch blocks the GIL. Delay so Render's 5s GET health check
-        # can succeed before we touch the ML stack.
-        time.sleep(12)
-        registry.load()
-
-    threading.Thread(target=_deferred_load, name="mindscan-model-load", daemon=True).start()
+        threading.Thread(target=_deferred_load, name="mindscan-model-load", daemon=True).start()
+    else:
+        registry.ready = True
+        registry.using_mock = True
 
 
 @app.get("/api/health")
@@ -94,7 +95,7 @@ def health():
         "models_ready": registry.ready,
         "using_mock": registry.using_mock,
         "loaded": list(registry.loaded.keys()),
-        "speech_encoder": isinstance(registry.speech_encoder, TorchEncoder),
+        "neural_encoders": settings.neural_encoders_enabled,
         "speech_fallback": None if settings.speech_encoder_enabled else "groq_whisper",
         "speech_fallback_notice": settings.speech_fallback_notice,
         "frontend_dist": str(FRONTEND_DIST) if FRONTEND_DIST else None,

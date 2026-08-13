@@ -31,7 +31,10 @@ export async function runAssessment({
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: fd,
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text.slice(0, 400) || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
