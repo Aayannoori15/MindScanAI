@@ -1,11 +1,13 @@
 import threading
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.staticfiles import StaticFiles
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from backend.api.middleware.rate_limit import limiter
 from backend.api.routes import assessment, companion, explain, history, realtime, wellness
@@ -14,12 +16,47 @@ from backend.config import ROOT, settings
 from backend.core.model_loader import registry
 from backend.database.session import Base, engine
 
-FRONTEND_DIST = ROOT / "frontend" / "dist"
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+def _frontend_dist() -> Path | None:
+    for p in (
+        ROOT / "frontend" / "dist",
+        Path.cwd() / "frontend" / "dist",
+        Path("/opt/render/project/src/frontend/dist"),
+    ):
+        if (p / "index.html").is_file():
+            return p
+    return None
+
+
+FRONTEND_DIST = _frontend_dist()
+
+
+class RenderHeadMiddleware:
+    """Render probes HEAD / and kills the service on 405. Answer 200 before routing."""
+
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["method"] == "HEAD":
+            path = scope.get("path") or "/"
+            if path in ("/", "", "/api/health"):
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 200,
+                        "headers": [(b"content-type", b"text/plain"), (b"content-length", b"0")],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
+        await self.app(scope, receive, send)
+
+
+app = FastAPI(title=settings.app_name, version="0.1.0", redirect_slashes=False)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
+app.add_middleware(RenderHeadMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -39,19 +76,18 @@ app.include_router(companion.router, prefix="/api/companion", tags=["companion"]
 
 @app.on_event("startup")
 def startup():
-    # Bind the HTTP port immediately. Loading wav2vec2 / ResNet in this
-    # handler would block uvicorn's lifespan, so Render never sees an open port.
     Base.metadata.create_all(bind=engine)
     threading.Thread(target=registry.load, name="mindscan-model-load", daemon=True).start()
 
 
-@app.api_route("/api/health", methods=["GET", "HEAD"])
+@app.get("/api/health")
 def health():
     return {
         "ok": True,
         "models_ready": registry.ready,
         "using_mock": registry.using_mock,
         "loaded": list(registry.loaded.keys()),
+        "frontend_dist": str(FRONTEND_DIST) if FRONTEND_DIST else None,
     }
 
 
@@ -59,24 +95,23 @@ def _spa_index():
     return FileResponse(FRONTEND_DIST / "index.html")
 
 
-@app.api_route("/", methods=["GET", "HEAD"])
-def spa_root(request: Request):
-    # Render probes HEAD / ; a GET-only route returns 405 and the deploy is killed.
-    if request.method == "HEAD":
-        return Response(status_code=200)
-    if FRONTEND_DIST.is_dir():
+@app.get("/")
+def spa_root():
+    if FRONTEND_DIST:
         return _spa_index()
-    return {"ok": True, "service": "mindscan"}
+    return JSONResponse({"ok": True, "service": "mindscan", "frontend_dist": None})
 
 
-if FRONTEND_DIST.is_dir():
+if FRONTEND_DIST is not None:
+    for folder in ("assets", "models", "mediapipe-wasm"):
+        directory = FRONTEND_DIST / folder
+        if directory.is_dir():
+            app.mount(f"/{folder}", StaticFiles(directory=str(directory)), name=folder)
 
-    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
-    def spa_fallback(full_path: str, request: Request):
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
         if full_path.startswith("api"):
             raise HTTPException(status_code=404, detail="Not Found")
-        if request.method == "HEAD":
-            return Response(status_code=200)
         target = FRONTEND_DIST / full_path
         if target.is_file():
             return FileResponse(target)
