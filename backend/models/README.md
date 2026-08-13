@@ -3,13 +3,12 @@
 
 ## Expected files
 
-classification/mental_health_classifier.pt
-classification/facial_encoder.pt
-classification/speech_encoder.pt
-regression/depression_regressor.pt
-regression/anxiety_regressor.pt
-regression/stress_regressor.pt
-fusion/multimodal_fusion.pt
+classification/facial_encoder.pt   # train via training/train_facial.py
+classification/speech_encoder.pt   # train via training/train_speech.py
+
+Status classification and D/A/S scoring intentionally stay on the heuristic engine
+(backend/core/inference/) — see docs/model_placement.md for why the tabular
+classifier/regressor/fusion files aren't trained/loaded by default.
 
 ## Input tensors (dataset-aligned)
 

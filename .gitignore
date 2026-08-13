@@ -5,6 +5,7 @@ venv/
 .env
 mindscan.db
 *.pt
+data/
 node_modules/
 frontend/dist/
 .DS_Store
