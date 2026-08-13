@@ -14,6 +14,9 @@ export function useAssessment() {
     dispatch(setError(null));
     try {
       const result = await runAssessment({ ...state, token });
+      if (!result?.scores) {
+        throw new Error("The server returned an incomplete result. Try Run MindScan again.");
+      }
       dispatch(setResult(result));
       nav("/results");
     } catch (e) {

@@ -53,8 +53,14 @@ export default function PlainSummary({ status, scores, insights }) {
   const face = insights?.facial;
   const voice = insights?.speech;
   const observed = [];
-  if (face?.available) observed.push(`your face looked mostly ${face.detected_emotion}`);
-  if (voice?.available) observed.push(`your voice sounded ${voice.detected_status.replace("_", " ").toLowerCase()}`);
+  if (face?.available && face.detected_emotion) {
+    observed.push(`your face looked mostly ${face.detected_emotion}`);
+  }
+  if (voice?.available && voice.detected_status) {
+    observed.push(`your voice sounded ${voice.detected_status.replace("_", " ").toLowerCase()}`);
+  } else if (voice?.available && voice.transcript_preview) {
+    observed.push("your words were transcribed");
+  }
 
   return (
     <div

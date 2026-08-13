@@ -26,6 +26,26 @@ const initialNumerical = {
   GSR_Level: 2.5,
 };
 
+const RESULT_KEY = "mindscan.lastResult";
+
+function readPersistedResult() {
+  try {
+    const raw = sessionStorage.getItem(RESULT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistResult(result) {
+  try {
+    if (result) sessionStorage.setItem(RESULT_KEY, JSON.stringify(result));
+    else sessionStorage.removeItem(RESULT_KEY);
+  } catch {
+    /* private mode / quota */
+  }
+}
+
 const slice = createSlice({
   name: "assessment",
   initialState: {
@@ -38,7 +58,7 @@ const slice = createSlice({
     facialLabelHint: null,
     emotionTimeline: [],
     languageHint: "language-agnostic",
-    result: null,
+    result: readPersistedResult(),
     loading: false,
     error: null,
   },
@@ -81,6 +101,7 @@ const slice = createSlice({
     },
     setResult: (s, a) => {
       s.result = a.payload;
+      persistResult(a.payload);
     },
     resetAssessment: () => ({
       step: 0,

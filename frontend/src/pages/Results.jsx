@@ -22,7 +22,7 @@ export default function Results() {
   const result = useSelector((s) => s.assessment.result);
   const [showCrisis, setShowCrisis] = useState(true);
 
-  if (!result) {
+  if (!result?.scores) {
     return (
       <div className="max-w-5xl mx-auto">
         <PageHeader eyebrow="Results" title="Nothing to show yet" lede="Run an assessment and its results will appear here." />

@@ -65,9 +65,11 @@ export default function InsightsPanel({ insights }) {
                 <span className="font-display text-4xl text-white capitalize">{facial.detected_emotion}</span>
                 <span className="text-sm text-ink-200"><span className="text-ink-50 font-semibold tabular-nums">{facial.confidence}%</span> confident</span>
               </div>
+              {facial.maps_to && (
               <p className="text-xs text-ink-300 mt-1">
-                maps to <span className="text-ink-200">{facial.maps_to.replace("_", " ")}</span>
+                maps to <span className="text-ink-200">{String(facial.maps_to).replace("_", " ")}</span>
               </p>
+              )}
 
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1">
@@ -78,7 +80,7 @@ export default function InsightsPanel({ insights }) {
               </div>
 
               <div className="mt-4 space-y-2">
-                {facial.top_emotions.map((e) => (
+                {(facial.top_emotions || []).map((e) => (
                   <div key={e.label}>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-ink-300 capitalize">{e.label}</span>
