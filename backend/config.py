@@ -20,6 +20,23 @@ class Settings(BaseSettings):
     crisis_stress_threshold: float = 30.0
     crisis_severity_label: str = "Severe_Stress"
 
+    # Groq: Whisper transcription + LLM narrative report. Optional — the
+    # assessment degrades to model/heuristic output when disabled or offline.
+    enable_groq: bool = False
+    groq_stt_api_key: str = ""
+    groq_llm_api_key: str = ""
+    groq_stt_model: str = "whisper-large-v3-turbo"
+    groq_llm_model: str = "llama-3.3-70b-versatile"
+    groq_timeout_seconds: float = 30.0
+
+    @property
+    def groq_stt_ready(self) -> bool:
+        return bool(self.enable_groq and self.groq_stt_api_key)
+
+    @property
+    def groq_llm_ready(self) -> bool:
+        return bool(self.enable_groq and self.groq_llm_api_key)
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

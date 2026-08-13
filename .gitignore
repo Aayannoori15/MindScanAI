@@ -13,3 +13,6 @@ frontend/dist/
 .vscode/
 Screen Recording*.mov
 /My Movie.mp4
+
+# MediaPipe WASM runtime is copied out of node_modules by frontend postinstall.
+frontend/public/mediapipe-wasm/

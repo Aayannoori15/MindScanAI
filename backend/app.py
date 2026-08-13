@@ -4,7 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from backend.api.middleware.rate_limit import limiter
-from backend.api.routes import assessment, explain, history, realtime, wellness
+from backend.api.routes import assessment, companion, explain, history, realtime, wellness
 from backend.api.routes import report as report_routes
 from backend.config import settings
 from backend.core.model_loader import registry
@@ -28,6 +28,7 @@ app.include_router(history.router, prefix="/api/history", tags=["history"])
 app.include_router(wellness.router, prefix="/api/wellness", tags=["wellness"])
 app.include_router(report_routes.router, prefix="/api/report", tags=["report"])
 app.include_router(realtime.router, prefix="/api/realtime", tags=["realtime"])
+app.include_router(companion.router, prefix="/api/companion", tags=["companion"])
 
 
 @app.on_event("startup")

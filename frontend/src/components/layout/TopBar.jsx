@@ -1,15 +1,46 @@
-import { Link } from "react-router-dom";
-import { Activity } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import { Activity, LayoutDashboard, ScanFace, Radio, Info, Leaf, MessagesSquare, BookOpen, LifeBuoy } from "lucide-react";
+
+const links = [
+  { to: "/assessment", label: "Assessment", icon: ScanFace },
+  { to: "/realtime", label: "Live", icon: Radio },
+  { to: "/dashboard", label: "Trends", icon: LayoutDashboard },
+  { to: "/relax", label: "Relax", icon: Leaf },
+  { to: "/companion", label: "Companion", icon: MessagesSquare },
+  { to: "/library", label: "Reading", icon: BookOpen },
+  { to: "/help", label: "Help", icon: LifeBuoy },
+  { to: "/about", label: "About", icon: Info },
+];
 
 export default function TopBar() {
   return (
-    <header className="h-16 border-b border-neutral-200 bg-white/90 backdrop-blur flex items-center justify-between px-4 md:px-8">
-      <Link to="/" className="md:hidden flex items-center gap-2 font-display text-black">
-        <Activity className="text-neutral-500" size={18} />
+    <header className="sticky top-0 z-30 h-16 border-b border-white/10 bg-navy/60 backdrop-blur-xl flex items-center justify-between gap-3 px-4 md:px-8">
+      <Link to="/" className="md:hidden flex items-center gap-2 font-display text-white shrink-0">
+        <Activity className="text-ink-200" size={18} />
         MindScan
       </Link>
-      <p className="hidden md:block text-sm text-neutral-500">Explainable multimodal psychiatric screening</p>
-      <span className="text-xs px-3 py-1 rounded-[999px_999px_999px_28%] bg-neutral-100 text-neutral-700 border border-neutral-200 font-medium hover:bg-neutral-200 transition">
+
+      <p className="hidden md:block text-sm text-ink-300">Explainable multimodal psychiatric screening</p>
+
+      {/* The sidebar is hidden below md, so the nav has to live here on phones. */}
+      <nav className="md:hidden flex items-center gap-1 rounded-full bg-white/[0.07] border border-white/10 p-1">
+        {links.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            aria-label={label}
+            className={({ isActive }) =>
+              `h-8 w-8 grid place-items-center rounded-full transition ${
+                isActive ? "bg-white/15 text-ink-200" : "text-ink-300 hover:text-white/90"
+              }`
+            }
+          >
+            <Icon size={15} />
+          </NavLink>
+        ))}
+      </nav>
+
+      <span className="hidden sm:inline text-xs px-3 py-1 rounded-full bg-white/10 border border-white/15 text-ink-200 font-medium tracking-wide shrink-0">
         Hack2Health
       </span>
     </header>

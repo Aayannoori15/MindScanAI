@@ -46,9 +46,9 @@ export default function LiveFaceAnalysis({ onEmotions }) {
   return (
     <div className="space-y-3">
       <video ref={videoRef} playsInline muted className="w-full rounded-2xl glass-inset aspect-video object-cover" />
-      {error && <p className="text-sm text-rose">{error}</p>}
-      {status && <p className="text-xs text-amber">{status}</p>}
-      <p className="text-xs text-white/40">
+      {error && <p className="text-sm text-ink-50">{error}</p>}
+      {status && <p className="text-xs text-ink-200">{status}</p>}
+      <p className="text-xs text-ink-400">
         Frames are scored by the fine-tuned ResNet18 FER classifier (70.3% validation accuracy) on the server.
       </p>
     </div>

@@ -16,15 +16,21 @@ export default function ScoreGauge({ label, value, max, range }) {
 
   const pct = (shown / max) * 100;
   return (
-    <div className="glass-card p-5">
-      <p className="text-sm text-white/50">{label}</p>
-      <p className="text-3xl font-semibold mt-1 text-white">
-        {shown.toFixed(1)}
-        <span className="text-base text-white/35 font-normal">/{max}</span>
+    <div className="glass-card glass-hover p-5">
+      <p className="text-xs uppercase tracking-[0.16em] text-ink-400">{label}</p>
+      {/* The number is the point of this card, so it carries the visual weight. */}
+      <p className="mt-1.5 flex items-baseline gap-1.5">
+        <span className="text-5xl font-semibold tabular-nums leading-none text-white">
+          {shown.toFixed(1)}
+        </span>
+        <span className="text-sm text-ink-400 font-normal">/ {max}</span>
       </p>
-      <p className="text-xs text-white/40 mt-1">{range} range</p>
-      <div className="h-2 bg-white/10 rounded-full mt-3 overflow-hidden">
-        <div className="h-full bg-teal rounded-full" style={{ width: `${pct}%` }} />
+      <p className="text-xs text-ink-300 mt-2">{range} range</p>
+      <div className="h-2.5 bg-white/[0.09] rounded-full mt-3 overflow-hidden">
+        <div
+          className="h-full bg-ink-50 rounded-full"
+          style={{ width: `${pct}%`, boxShadow: "0 0 14px -2px rgba(244,244,245,0.5)" }}
+        />
       </div>
     </div>
   );

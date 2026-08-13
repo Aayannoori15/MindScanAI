@@ -7,6 +7,8 @@ import ProgressStepper from "../components/assessment/ProgressStepper";
 import LoadingPulse from "../components/shared/LoadingPulse";
 import { setLanguageHint, setStep } from "../store/assessmentSlice";
 import { useAssessment } from "../hooks/useAssessment";
+import PageHeader from "../components/layout/PageHeader";
+import PageTransition, { Reveal } from "../components/layout/PageTransition";
 
 export default function Assessment() {
   const dispatch = useDispatch();
@@ -14,10 +16,15 @@ export default function Assessment() {
   const languageHint = useSelector((s) => s.assessment.languageHint);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <p className="eyebrow mb-2">Step {step + 1} of 3</p>
-      <h1 className="font-display text-3xl md:text-4xl text-white mb-2">Assessment</h1>
-      <p className="text-white/50 mb-8">Choose modalities, capture signals, then run fusion + XAI.</p>
+    <PageTransition className="max-w-4xl mx-auto">
+      <Reveal>
+        <PageHeader
+          eyebrow={`Step ${step + 1} of 3`}
+          title="Assessment"
+          lede="Choose modalities, capture signals, then run fusion + XAI."
+        />
+      </Reveal>
+      <div className="mt-8" />
       <ProgressStepper step={step} />
 
       {step === 0 && (
@@ -54,10 +61,10 @@ export default function Assessment() {
       {step === 2 && (
         <div className="glass-card p-6 space-y-3 text-white">
           <p>Modalities: {modalities.join(", ") || "none"}</p>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-ink-300">
             Inference uses teammate weights when present; otherwise a documented mock fusion so the demo never hard-fails.
           </p>
-          {error && <p className="text-rose text-sm">{error}</p>}
+          {error && <p className="text-ink-50 text-sm">{error}</p>}
           {loading && <LoadingPulse />}
         </div>
       )}
@@ -66,20 +73,20 @@ export default function Assessment() {
         <button
           disabled={step === 0}
           onClick={() => dispatch(setStep(Math.max(0, step - 1)))}
-          className="btn-drop btn-drop-light disabled:opacity-40"
+          className="pill-btn-ghost"
         >
           Back
         </button>
         {step < 2 ? (
-          <button onClick={() => dispatch(setStep(step + 1))} className="btn-drop btn-drop-solid">
+          <button onClick={() => dispatch(setStep(step + 1))} className="pill-btn-primary">
             Continue
           </button>
         ) : (
-          <button onClick={submit} disabled={loading || !modalities.length} className="btn-drop btn-drop-solid disabled:opacity-40">
+          <button onClick={submit} disabled={loading || !modalities.length} className="pill-btn-solid">
             Run MindScan
           </button>
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }

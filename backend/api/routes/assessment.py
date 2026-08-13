@@ -21,6 +21,8 @@ from backend.core.dataset_spec import (
     STATUS_LABELS,
 )
 from backend.core.model_loader import registry
+from backend.core.llm.groq_client import generate_report, transcribe
+from backend.core.timeutil import iso_utc
 from backend.core.preprocessors.facial_preprocessor import preprocess_face
 from backend.core.preprocessors.numerical_preprocessor import preprocess_numerical
 from backend.core.preprocessors.speech_preprocessor import preprocess_speech
@@ -28,6 +30,7 @@ from backend.database.models import AssessmentSession, User
 from backend.database.schemas import AssessmentRequest, LoginIn, RegisterIn, TokenOut
 from backend.database.session import get_db
 from backend.features.crisis_detector import detect_crisis
+from backend.features.therapy_recommender import recommend_therapy
 from backend.features.emotion_timeline import summarize_timeline
 from backend.features.wellness_engine import personalized_wellness
 
@@ -209,6 +212,28 @@ async def run_assessment(
         timeline.get("dominant"),
     )
     crisis = detect_crisis(status, scores["stress"])
+    therapy = recommend_therapy(status, scores, bool(crisis["flagged"]))
+
+    # Language layer: the encoders read *how* someone sounds, this reads what
+    # they actually said. Both are best-effort — a failure here degrades the
+    # report rather than failing the assessment.
+    insights = _build_insights(face_pred, speech_pred, speech_q, num_t, req, used)
+    transcript = (
+        transcribe(speech_t)
+        if "speech" in used and speech_bytes
+        else {"available": False, "reason": "No audio submitted."}
+    )
+    ai_report = generate_report(
+        transcript=transcript,
+        scores=scores,
+        status=status,
+        facial=insights.get("facial"),
+        speech=insights.get("speech"),
+        numerical_drivers=(insights.get("numerical") or {}).get("top_drivers"),
+        crisis_flagged=bool(crisis["flagged"]),
+    )
+    insights["transcript"] = transcript
+    insights["ai_report"] = ai_report
 
     session = AssessmentSession(
         user_id=user.id if user else req.user_id,
@@ -218,9 +243,9 @@ async def run_assessment(
         stress_score=scores["stress"],
         modalities_used=",".join(used),
         numerical_features=req.numerical.model_dump() if req.numerical else None,
-        explanation=explanation,
+        explanation={**explanation, "ai_report": ai_report, "transcript": transcript},
         emotion_timeline=timeline,
-        wellness=wellness,
+        wellness={**wellness, "therapy": therapy},
         crisis_flag=1 if crisis["flagged"] else 0,
     )
     db.add(session)
@@ -234,7 +259,7 @@ async def run_assessment(
         "dataset_hints": {"facial": face_q.get("emotion"), "speech": (speech_q.get("ravdess") or {}).get("emotion")},
         "using_mock_models": registry.using_mock,
         "using_trained_tabular_model": predicted_scores is not None and predicted_status is not None,
-        "insights": _build_insights(face_pred, speech_pred, speech_q, num_t, req, used),
+        "insights": insights,
         "scores": {
             "depression": round(scores["depression"], 1),
             "anxiety": round(scores["anxiety"], 1),
@@ -253,6 +278,7 @@ async def run_assessment(
         "explanation": explanation,
         "wellness": wellness,
         "crisis": crisis,
+        "therapy": therapy,
         "emotion_timeline": timeline,
-        "created_at": session.created_at.isoformat(),
+        "created_at": iso_utc(session.created_at),
     }

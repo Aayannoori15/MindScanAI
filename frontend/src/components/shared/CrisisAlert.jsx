@@ -9,7 +9,8 @@ export default function CrisisAlert({ crisis, onClose }) {
           {(crisis.resources || []).map((r) => (
             <li key={r.phone} className="border border-slate-100 rounded-xl p-3">
               <p className="font-medium">{r.name}</p>
-              <p className="text-teal">{r.phone}</p>
+              {/* Dark on the white card: this is the number someone in crisis has to read. */}
+              <p className="text-lg font-semibold text-ink-900 tracking-wide">{r.phone}</p>
               <p className="text-xs text-slate-500">{r.hours} · {r.note}</p>
             </li>
           ))}
