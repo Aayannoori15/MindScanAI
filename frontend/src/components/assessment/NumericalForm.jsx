@@ -35,9 +35,9 @@ export default function NumericalForm() {
     <div className="grid sm:grid-cols-2 gap-4">
       {FIELDS.map(([key, label, min, max, step]) => (
         <label key={key} className="text-sm">
-          <span className="flex justify-between text-white/60 mb-1">
+          <span className="flex justify-between text-ink-300 mb-1">
             {label}
-            <span className="font-medium text-teal">{values[key]}</span>
+            <span className="font-medium text-ink-200">{values[key]}</span>
           </span>
           <input
             type="range"
@@ -46,7 +46,7 @@ export default function NumericalForm() {
             step={step}
             value={values[key]}
             onChange={(e) => dispatch(setNumerical({ [key]: Number(e.target.value) }))}
-            className="w-full accent-teal"
+            className="w-full accent-white"
           />
         </label>
       ))}

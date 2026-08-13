@@ -1,14 +1,15 @@
 import { Link } from "react-router-dom";
 import StatusBadge from "../results/StatusBadge";
+import { formatISTDateTime } from "../../utils/datetime";
 
 export default function SessionHistory({ sessions = [] }) {
-  if (!sessions.length) return <p className="text-sm text-white/40">No sessions yet. Run an assessment first.</p>;
+  if (!sessions.length) return <p className="text-sm text-ink-400">No sessions yet. Run an assessment first.</p>;
   return (
     <div className="overflow-x-auto glass-card">
-      <table className="w-full text-sm text-white/80">
+      <table className="w-full text-sm text-ink-100">
         <thead>
-          <tr className="text-left text-white/40">
-            <th className="p-3">When</th>
+          <tr className="text-left text-ink-400">
+            <th className="p-3">When (IST)</th>
             <th>Status</th>
             <th>D</th>
             <th>A</th>
@@ -18,7 +19,7 @@ export default function SessionHistory({ sessions = [] }) {
         <tbody>
           {sessions.map((s) => (
             <tr key={s.id} className="border-t border-white/10">
-              <td className="p-3">{new Date(s.created_at).toLocaleString()}</td>
+              <td className="p-3">{formatISTDateTime(s.created_at)}</td>
               <td>
                 <StatusBadge label={s.status_label} />
               </td>

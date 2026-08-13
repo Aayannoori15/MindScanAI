@@ -45,7 +45,7 @@ export default function RealtimeAnalysis() {
                 <EmotionMeter emotions={shown} />
               </div>
             ) : (
-              <p className="text-sm text-white/35 mt-4">
+              <p className="text-sm text-ink-400 mt-4">
                 Waiting for the first analysed frame…
               </p>
             )}

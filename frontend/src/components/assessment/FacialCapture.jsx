@@ -74,7 +74,7 @@ export default function FacialCapture() {
       <div className="relative">
         <video ref={videoRef} playsInline muted className="w-full rounded-2xl glass-inset aspect-square object-cover" />
         {!ready && !error && (
-          <div className="absolute inset-0 grid place-items-center rounded-2xl bg-black/30 text-xs text-white/60">
+          <div className="absolute inset-0 grid place-items-center rounded-2xl bg-black/30 text-xs text-ink-300">
             Starting camera…
           </div>
         )}
@@ -82,20 +82,20 @@ export default function FacialCapture() {
           <img
             src={previewUrl}
             alt="Captured still"
-            className="absolute bottom-2 right-2 h-14 w-14 rounded-lg border-2 border-teal object-cover shadow-lg"
+            className="absolute bottom-2 right-2 h-14 w-14 rounded-lg border-2 border-white/30 object-cover shadow-lg"
           />
         )}
         {live && (
           <div className="absolute top-2 left-2 rounded-lg bg-black/60 backdrop-blur px-2.5 py-1.5 text-xs">
-            <span className="text-teal capitalize font-medium">{live.dominant}</span>
-            <span className="text-white/60"> · {Math.round(live.confidence * 100)}%</span>
+            <span className="text-ink-200 capitalize font-medium">{live.dominant}</span>
+            <span className="text-ink-300"> · {Math.round(live.confidence * 100)}%</span>
           </div>
         )}
       </div>
       {error && (
-        <div className="text-sm text-rose space-y-2">
+        <div className="text-sm text-ink-50 space-y-2">
           <p>{error}</p>
-          <p className="text-white/40">You can continue without a face frame, or</p>
+          <p className="text-ink-400">You can continue without a face frame, or</p>
           <button onClick={start} className="pill-btn-ghost py-1.5 px-4 text-xs">
             Try again
           </button>
@@ -104,9 +104,9 @@ export default function FacialCapture() {
       <button onClick={snap} disabled={!ready} className="w-full pill-btn-primary py-2.5">
         {saved ? "Retake still" : "Capture 48×48 grayscale still"}
       </button>
-      <label className="block text-xs text-white/40">
+      <label className="block text-xs text-ink-400">
         Upload FER image (include the class in the filename: angry, fear, happy…)
-        <input type="file" accept="image/*" onChange={onFile} className="mt-1 block w-full text-white/60" />
+        <input type="file" accept="image/*" onChange={onFile} className="mt-1 block w-full text-ink-300" />
       </label>
     </div>
   );

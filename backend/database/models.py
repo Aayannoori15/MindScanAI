@@ -1,4 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def _utc_now() -> datetime:
+    """Naive UTC, matching the existing column type.
+
+    Stored naive for backwards compatibility with rows already in the database;
+    the API layer attaches the UTC offset on the way out so clients can convert
+    correctly instead of guessing.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,7 +23,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120))
     hashed_password: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
 
     sessions: Mapped[list["AssessmentSession"]] = relationship(back_populates="user")
 
@@ -23,7 +33,7 @@ class AssessmentSession(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
     status_label: Mapped[str] = mapped_column(String(32))
     depression_score: Mapped[float] = mapped_column(Float)
     anxiety_score: Mapped[float] = mapped_column(Float)

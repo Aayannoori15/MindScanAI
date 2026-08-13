@@ -1,12 +1,17 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Activity, LayoutDashboard, ScanFace, Radio, Info } from "lucide-react";
+import { Activity, LayoutDashboard, ScanFace, Radio, Info, Leaf, MessagesSquare, BookOpen, LifeBuoy } from "lucide-react";
 import TopBar from "./TopBar";
+import RingScene from "./RingScene";
 
 const links = [
   { to: "/assessment", label: "Assessment", icon: ScanFace },
   { to: "/realtime", label: "Live", icon: Radio },
   { to: "/dashboard", label: "Trends", icon: LayoutDashboard },
+  { to: "/relax", label: "Relax", icon: Leaf },
+  { to: "/companion", label: "Companion", icon: MessagesSquare },
+  { to: "/library", label: "Reading", icon: BookOpen },
+  { to: "/help", label: "Help", icon: LifeBuoy },
   { to: "/about", label: "About", icon: Info },
 ];
 
@@ -16,9 +21,16 @@ export default function PageContainer() {
 
   return (
     <div className="ambient-stage min-h-screen flex">
-      <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/10 bg-black/25 backdrop-blur-xl p-6">
+      {/*
+        The hero's ring, kept as a faint presence behind the whole app so inner
+        pages sit in the same space rather than a different one. Low opacity and
+        pointer-events-none: it is scenery, never a target.
+      */}
+      <RingScene className="pointer-events-none fixed -right-[18vw] -top-[12vh] -z-10 h-[80vh] w-[80vw] opacity-[0.28]" />
+
+      <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.07] bg-black/40 backdrop-blur-xl p-6">
         <Link to="/" className="flex items-center gap-2 mb-10 group">
-          <Activity className="text-teal transition group-hover:brightness-125" size={20} />
+          <Activity className="text-ink-200 transition group-hover:text-white" size={20} />
           <span className="font-display text-xl tracking-tight text-white">MindScan</span>
         </Link>
 
@@ -30,8 +42,8 @@ export default function PageContainer() {
               className={({ isActive }) =>
                 `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                   isActive
-                    ? "bg-white/[0.08] text-teal nav-active-glow"
-                    : "text-white/55 hover:bg-white/[0.05] hover:text-white/90"
+                    ? "bg-white/[0.07] text-white nav-active-glow"
+                    : "text-ink-400 hover:bg-white/[0.04] hover:text-ink-100"
                 }`
               }
             >
@@ -43,7 +55,7 @@ export default function PageContainer() {
 
         <div className="mt-auto pt-6">
           <div className="rule-teal w-full mb-3" />
-          <p className="text-[11px] text-white/35 leading-relaxed">
+          <p className="text-[11px] text-ink-400 leading-relaxed">
             Decision support only. Not a clinical diagnosis.
           </p>
         </div>

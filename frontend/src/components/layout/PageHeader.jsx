@@ -14,7 +14,7 @@ export default function PageHeader({ eyebrow, title, lede, actions }) {
           </>
         )}
         <h1 className="page-title mt-3">{title}</h1>
-        {lede && <p className="mt-3 text-white/55 max-w-xl leading-relaxed">{lede}</p>}
+        {lede && <p className="mt-3 text-ink-300 max-w-xl leading-relaxed">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-3 shrink-0">{actions}</div>}
     </header>

@@ -19,10 +19,10 @@ export default function ModalitySelector() {
             key={o.id}
             type="button"
             onClick={() => dispatch(toggleModality(o.id))}
-            className={`text-left rounded-2xl border p-4 transition ${on ? "border-teal bg-teal/10" : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]"}`}
+            className={`text-left rounded-2xl border p-4 transition ${on ? "border-white/30 bg-white/[0.07]" : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]"}`}
           >
             <p className="font-medium text-white">{o.title}</p>
-            <p className="text-sm text-white/50 mt-1">{o.body}</p>
+            <p className="text-sm text-ink-300 mt-1">{o.body}</p>
           </button>
         );
       })}

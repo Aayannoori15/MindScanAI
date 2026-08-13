@@ -32,7 +32,7 @@ export default function About() {
           {PILLARS.map((p) => (
             <article key={p.title} className="glass-card glass-hover p-5">
               <h3 className="font-medium text-white">{p.title}</h3>
-              <p className="text-sm text-white/55 mt-2 leading-relaxed">{p.body}</p>
+              <p className="text-sm text-ink-300 mt-2 leading-relaxed">{p.body}</p>
             </article>
           ))}
         </div>
@@ -41,11 +41,11 @@ export default function About() {
       <Reveal>
         <div className="glass-card p-6 space-y-4">
           <h2 className="font-display text-2xl text-white">Explanations, three ways</h2>
-          <p className="text-white/65 leading-relaxed">
+          <p className="text-ink-200 leading-relaxed">
             Every result is accounted for in plain English, visually through Grad-CAM saliency and feature
             contributions, and as a clinical table — so a score can be checked rather than taken on trust.
           </p>
-          <p className="text-white/65 leading-relaxed">
+          <p className="text-ink-200 leading-relaxed">
             Crisis messaging stays warm and non-alarmist, surfacing Indian helplines (iCall, Vandrevala, KIRAN)
             when the signals warrant it.
           </p>
@@ -53,7 +53,7 @@ export default function About() {
       </Reveal>
 
       <Reveal>
-        <p className="text-sm text-white/35">
+        <p className="text-sm text-ink-400">
           This software is not a medical device and does not diagnose illness.
         </p>
       </Reveal>

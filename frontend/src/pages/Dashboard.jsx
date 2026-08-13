@@ -32,9 +32,9 @@ export default function Dashboard() {
             {["depression", "anxiety", "stress"].map((k) => (
               <span
                 key={k}
-                className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-white/80 capitalize"
+                className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-ink-100 capitalize"
               >
-                {k}: <span className="text-teal">{trends[k]}</span>
+                {k}: <span className="text-ink-200">{trends[k]}</span>
               </span>
             ))}
           </div>

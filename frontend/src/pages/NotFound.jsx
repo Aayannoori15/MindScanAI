@@ -6,7 +6,7 @@ export default function NotFound() {
       <div className="text-center">
         <p className="eyebrow mb-2">Not found</p>
         <p className="font-display text-5xl text-white">404</p>
-        <Link to="/" className="text-teal mt-4 inline-block hover:brightness-110">
+        <Link to="/" className="text-ink-200 mt-4 inline-block hover:brightness-110">
           Back home
         </Link>
       </div>

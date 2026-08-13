@@ -10,7 +10,7 @@ export default function SpeechWaveform({ active }) {
     const draw = (t) => {
       const { width, height } = canvas;
       ctx.clearRect(0, 0, width, height);
-      ctx.strokeStyle = "#00BFA6";
+      ctx.strokeStyle = "#dcdcdc";
       ctx.beginPath();
       for (let x = 0; x < width; x++) {
         const amp = active ? Math.sin(x / 12 + t / 200) * 18 + Math.sin(x / 7) * 8 : 4;

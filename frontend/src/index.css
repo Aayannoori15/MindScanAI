@@ -5,22 +5,29 @@
 @tailwind utilities;
 
 /*
- * Brand tokens must stay in step with tailwind.config.js, which hard-codes the
- * same hexes for the `navy`/`teal`/`amber`/`rose`/`mist` utility classes. If
- * these drift, `text-teal` and `var(--teal)` render as different colours.
+ * Monochrome tokens sampled from the hero clip (public/assets/landing-bg.mp4):
+ * a grey ring hovering in near-black, lit from above. Keep in step with
+ * tailwind.config.js, which hard-codes the same values for utility classes —
+ * when the two drift, `text-teal` and `var(--teal)` render differently.
  */
 :root {
-  --navy: #0f1b2d;
-  --teal: #00bfa6;
-  --amber: #f59e0b;
-  --rose: #fb7185;
-  --mist: #f8fafc;
+  --ink-950: #060606;
+  --ink-900: #0a0a0a;
+  --ink-800: #121212;
+  --ink-700: #1c1c1c;
+  --ink-600: #303030;
+  --ink-500: #454545;
+  --ink-400: #6e6e6e;
+  --ink-300: #9e9e9e;
+  --ink-200: #c8c8c8;
+  --ink-100: #e6e6e6;
+  --ink-50: #f4f4f5;
 
-  /* Neutral ramp retained from the monochrome pass; used by .btn-drop below. */
-  --ink: #0a0a0a;
-  --charcoal: #1a1a1a;
-  --steel: #6b7280;
-  --snow: #ffffff;
+  --navy: #060606;
+  --mist: #f4f4f5;
+  --teal: #e8e8e8;
+  --amber: #9a9a9a;
+  --rose: #c4c4c4;
 }
 
 html,
@@ -30,74 +37,17 @@ body,
 }
 
 body {
-  @apply bg-navy text-mist font-sans antialiased;
+  @apply bg-ink-950 text-ink-100 font-sans antialiased;
 }
 
 /*
- * Drop-shaped buttons from the monochrome UI pass. Retained because
- * pages/Landing.jsx styles its hero CTAs with them; the dark app shell uses
- * .pill-btn-* instead.
- */
-.btn-drop {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px 999px 999px 28%;
-  padding: 0.75rem 1.5rem;
-  font-weight: 500;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
-}
-
-.btn-drop:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-}
-
-.btn-drop:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.btn-drop-solid {
-  background: #0a0a0a;
-  color: #fff;
-}
-
-.btn-drop-solid:hover {
-  background: #262626;
-}
-
-.btn-drop-ghost {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(8px);
-}
-
-.btn-drop-ghost:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.btn-drop-light {
-  background: #fff;
-  color: #0a0a0a;
-  border: 1px solid #e5e5e5;
-}
-
-.btn-drop-light:hover {
-  background: #f4f4f5;
-  border-color: #a3a3a3;
-}
-
-/*
- * Ambient depth for the app shell.
+ * Ambient stage.
  *
- * The Landing hero gets its cinematic quality from a lit subject sitting in
- * layered darkness. Inner pages have no video, so the same read is built from
- * fixed colour washes (teal high-left, amber mid-right, rose low-centre) plus
- * a vignette. Fixed rather than scrolling, so the light feels like it comes
- * from the room instead of the document.
+ * The hero reads the way it does because a single soft key light sits above
+ * the subject and everything falls off to black. Inner pages reproduce that
+ * with one broad highlight anchored at the top centre plus a floor shadow —
+ * no colour, since the source frame measures ~2.7/255 saturation and any hue
+ * would read as contamination.
  */
 .ambient-stage {
   position: relative;
@@ -111,132 +61,246 @@ body {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 40rem at 8% -10%, rgba(0, 191, 166, 0.16), transparent 60%),
-    radial-gradient(45rem 35rem at 105% 35%, rgba(245, 158, 11, 0.1), transparent 62%),
-    radial-gradient(50rem 40rem at 45% 115%, rgba(251, 113, 133, 0.09), transparent 60%);
+    radial-gradient(70rem 34rem at 50% -18%, rgba(255, 255, 255, 0.19), transparent 66%),
+    radial-gradient(38rem 26rem at 12% 4%, rgba(255, 255, 255, 0.08), transparent 62%);
 }
 
-/* Vignette, painted above the washes but behind content. */
+/* Floor falloff, keeping the lower half properly black. */
 .ambient-stage::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 45%, transparent 45%, rgba(4, 9, 18, 0.55) 100%);
+  background: linear-gradient(180deg, transparent 38%, rgba(0, 0, 0, 0.6) 100%);
 }
 
 /*
- * Shared "dark glass" language extending the Landing hero across the app shell.
- * Each surface is a gradient rather than a flat tint, with a bright hairline
- * along the top edge — that highlight is what reads as a pane catching light
- * instead of a grey rectangle.
+ * Surfaces. Each is a near-black pane with a bright hairline along its top
+ * edge — the same cue the ring uses to show where the light is coming from.
  */
 .glass-card {
-  @apply relative backdrop-blur-md border border-white/10 rounded-2xl;
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035) 46%, rgba(255, 255, 255, 0.02));
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.09) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  @apply relative rounded-2xl border border-white/[0.11] backdrop-blur-md;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.032) 42%, rgba(255, 255, 255, 0.018));
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.16) inset, 0 22px 48px -28px rgba(0, 0, 0, 1);
 }
 
 .glass-panel {
-  @apply backdrop-blur-sm border border-white/10 rounded-2xl;
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  @apply rounded-2xl border border-white/[0.06] backdrop-blur-sm;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset;
 }
 
 .glass-inset {
-  @apply bg-black/25 border border-white/10 rounded-xl;
-  box-shadow: 0 2px 14px -6px rgba(0, 0, 0, 0.8) inset;
+  @apply rounded-xl border border-white/[0.06] bg-black/40;
+  box-shadow: 0 2px 16px -6px rgba(0, 0, 0, 0.9) inset;
 }
 
-/* Opt-in lift for cards that represent something clickable or live. */
 .glass-hover {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms, box-shadow 220ms;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), border-color 240ms, box-shadow 240ms;
 }
 
 .glass-hover:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 191, 166, 0.35);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.12) inset, 0 24px 50px -26px rgba(0, 0, 0, 0.95);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.16) inset, 0 28px 56px -30px rgba(0, 0, 0, 1);
 }
 
-/* Teal edge-glow for the active nav item. */
 .nav-active-glow {
-  box-shadow: inset 2px 0 0 0 var(--teal), 0 0 24px -10px rgba(0, 191, 166, 0.7);
-}
-
-.eyebrow {
-  @apply text-teal text-xs tracking-[0.22em] uppercase;
-}
-
-.pill-btn {
-  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition disabled:opacity-40 disabled:pointer-events-none;
-}
-
-.pill-btn-primary {
-  @apply pill-btn bg-teal text-navy hover:brightness-110;
-}
-
-.pill-btn-ghost {
-  @apply pill-btn border border-white/20 text-white hover:bg-white/10;
-}
-
-.pill-btn-solid {
-  @apply pill-btn bg-white text-navy hover:bg-white/90;
-}
-
-.field-label {
-  @apply block text-sm text-white/70;
-}
-
-.field-input {
-  @apply mt-1 w-full rounded-xl bg-white/[0.06] border border-white/15 px-3 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-teal/60 focus:ring-1 focus:ring-teal/40;
+  box-shadow: inset 2px 0 0 0 var(--ink-50), 0 0 26px -12px rgba(255, 255, 255, 0.6);
 }
 
 /*
- * Page titles, matching the hero's scale and tight leading. The gradient stops
- * short of full white at the baseline so long headings recede slightly, the
- * way the hero text sits into its background.
+ * Water-drop buttons.
+ *
+ * A droplet is legible from three things at once: an asymmetric silhouette,
+ * a hard specular clip near the top where the light source reflects, and a
+ * brighter lower rim where light refracts through and bounces back up. The
+ * ::before is the specular, the ::after the refracted rim; the body stays
+ * genuinely transparent so the stage shows through.
  */
+/*
+ * Legacy selectors are listed alongside the new ones rather than pulled in via
+ * `@apply`: @apply only resolves Tailwind utilities, not plain custom classes,
+ * so aliasing that way fails to compile.
+ */
+.drop-btn,
+.pill-btn,
+.btn-drop,
+.pill-btn-primary,
+.pill-btn-solid,
+.pill-btn-ghost,
+.btn-drop-solid,
+.btn-drop-light,
+.btn-drop-ghost {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  border-radius: 999px 999px 999px 34%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0.09));
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  color: var(--ink-50);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
+    0 -6px 14px -8px rgba(255, 255, 255, 0.32) inset,
+    0 12px 26px -14px rgba(0, 0, 0, 0.95);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms, border-color 260ms;
+}
+
+/* Specular: the light source caught on the upper surface. */
+.drop-btn::before,
+.pill-btn::before,
+.btn-drop::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  left: 12%;
+  width: 46%;
+  height: 34%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  filter: blur(3px);
+  opacity: 0.75;
+  transition: opacity 260ms, transform 260ms;
+}
+
+/* Refracted rim along the bottom, where a droplet gathers light. */
+.drop-btn::after,
+.pill-btn::after,
+.btn-drop::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 8% 2px 8%;
+  height: 32%;
+  border-radius: 999px;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(255, 255, 255, 0.3), transparent 70%);
+  filter: blur(5px);
+  transition: opacity 260ms;
+}
+
+.drop-btn:hover,
+.pill-btn:hover,
+.btn-drop:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.55) inset,
+    0 -8px 18px -8px rgba(255, 255, 255, 0.45) inset,
+    0 18px 34px -16px rgba(0, 0, 0, 1);
+}
+
+.drop-btn:hover::before,
+.pill-btn:hover::before,
+.btn-drop:hover::before {
+  opacity: 1;
+  transform: translateY(1px);
+}
+
+/* Surface tension: squash slightly on press, like a droplet meeting a surface. */
+.drop-btn:active,
+.pill-btn:active,
+.btn-drop:active {
+  transform: translateY(0) scaleY(0.97);
+}
+
+.drop-btn:disabled,
+.pill-btn:disabled,
+.btn-drop:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Solid variant — the lit edge of the ring, for primary actions. */
+.drop-btn-solid,
+.pill-btn-primary,
+.pill-btn-solid,
+.btn-drop-solid,
+.btn-drop-light {
+  background-image: linear-gradient(180deg, #ffffff, #d6d6d8 62%, #ffffff);
+  color: var(--ink-950);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 -7px 16px -8px rgba(0, 0, 0, 0.28) inset,
+    0 14px 30px -14px rgba(0, 0, 0, 0.95);
+}
+
+.drop-btn-solid::before,
+.pill-btn-primary::before,
+.pill-btn-solid::before,
+.btn-drop-solid::before,
+.btn-drop-light::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+}
+
+.drop-btn-solid:hover,
+.pill-btn-primary:hover,
+.pill-btn-solid:hover,
+.btn-drop-solid:hover,
+.btn-drop-light:hover {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 1) inset,
+    0 -9px 20px -8px rgba(0, 0, 0, 0.32) inset,
+    0 20px 38px -16px rgba(0, 0, 0, 1);
+}
+
+/* Quiet variant for secondary/destructive-adjacent actions. */
+.drop-btn-quiet,
+.pill-btn-ghost,
+.btn-drop-ghost {
+  border-color: rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.05));
+  color: var(--ink-200);
+}
+
+
+.eyebrow {
+  @apply text-ink-300 text-xs tracking-[0.22em] uppercase;
+}
+
+.field-label {
+  @apply block text-sm text-ink-300;
+}
+
+.field-input {
+  @apply mt-1 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-ink-50 placeholder:text-ink-400 focus:border-white/35 focus:outline-none focus:ring-1 focus:ring-white/25;
+}
+
+/* Display titles fade toward the floor, echoing the hero's falloff. */
 .page-title {
   @apply font-display leading-[0.95] tracking-tight text-4xl md:text-5xl;
-  background-image: linear-gradient(180deg, #ffffff 25%, rgba(226, 240, 255, 0.72));
+  background-image: linear-gradient(180deg, #ffffff 22%, rgba(220, 220, 220, 0.62));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Thin teal rule used under eyebrows to echo the hero's horizontal rhythm. */
 .rule-teal {
   height: 1px;
-  background-image: linear-gradient(90deg, rgba(0, 191, 166, 0.55), rgba(0, 191, 166, 0));
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0));
 }
 
-/* Slow drift on the ambient washes so the shell breathes rather than sits still. */
-@keyframes ambient-drift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -1.5%, 0) scale(1.04);
-  }
+.neural-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
-.ambient-stage::before {
-  animation: ambient-drift 26s ease-in-out infinite;
-}
-
-/*
- * Honour the OS "reduce motion" setting: kill the drift and let framer-motion's
- * useReducedMotion (which reads the same signal) flatten the page transitions.
- */
 @media (prefers-reduced-motion: reduce) {
-  .ambient-stage::before {
-    animation: none;
-  }
-
-  .glass-hover:hover {
+  .glass-hover:hover,
+  .drop-btn:hover,
+  .drop-btn:active {
     transform: none;
   }
 }

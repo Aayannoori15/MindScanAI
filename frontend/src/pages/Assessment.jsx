@@ -61,10 +61,10 @@ export default function Assessment() {
       {step === 2 && (
         <div className="glass-card p-6 space-y-3 text-white">
           <p>Modalities: {modalities.join(", ") || "none"}</p>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-ink-300">
             Inference uses teammate weights when present; otherwise a documented mock fusion so the demo never hard-fails.
           </p>
-          {error && <p className="text-rose text-sm">{error}</p>}
+          {error && <p className="text-ink-50 text-sm">{error}</p>}
           {loading && <LoadingPulse />}
         </div>
       )}
