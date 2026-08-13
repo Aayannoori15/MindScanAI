@@ -1,14 +1,19 @@
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from backend.api.middleware.rate_limit import limiter
 from backend.api.routes import assessment, companion, explain, history, realtime, wellness
 from backend.api.routes import report as report_routes
-from backend.config import settings
+from backend.config import ROOT, settings
 from backend.core.model_loader import registry
 from backend.database.session import Base, engine
+
+FRONTEND_DIST = ROOT / "frontend" / "dist"
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.state.limiter = limiter
@@ -45,3 +50,23 @@ def health():
         "using_mock": registry.using_mock,
         "loaded": list(registry.loaded.keys()),
     }
+
+
+def _spa_index():
+    return FileResponse(FRONTEND_DIST / "index.html")
+
+
+if FRONTEND_DIST.is_dir():
+
+    @app.get("/")
+    def spa_root():
+        return _spa_index()
+
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
+        if full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        target = FRONTEND_DIST / full_path
+        if target.is_file():
+            return FileResponse(target)
+        return _spa_index()

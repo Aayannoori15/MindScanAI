@@ -1,0 +1,17 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+node_modules
+frontend/node_modules
+frontend/dist
+dataset
+mindscan.db
+.env
+*.mov
+/My Movie.mp4
+.claude
+agent-transcripts
+mindscan-weights.zip
+frontend/public/mediapipe-wasm
