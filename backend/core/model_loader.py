@@ -4,7 +4,8 @@ import numpy as np
 import torch
 
 from backend.config import settings
-from backend.models.architectures import FacialEncoder, SpeechEncoder
+from backend.core.dataset_spec import SCORE_MAX, STATUS_LABELS
+from backend.models.architectures import FacialEncoder, ScoreRegressor, SpeechEncoder, StatusClassifier
 
 
 class MockEncoder:
@@ -41,18 +42,26 @@ class TorchEncoder:
 
 
 class ModelRegistry:
-    """Loads the trained facial/speech encoders (training/train_facial.py,
-    training/train_speech.py) when present.
+    """Loads trained models when present, falling back to mocks/heuristics otherwise.
 
-    The 4-class status and depression/anxiety/stress scores stay on the
-    hand-crafted heuristic engine (backend/core/inference/) rather than a
-    trained classifier/regressor: the accompanying tabular dataset
-    (dataset/mental_health_multimodal.csv) was benchmarked with both linear
-    correlation and a random forest, and its 18 feature columns carry no
-    measurable relationship to Mental_Health_Status or the D/A/S scores — a
-    model trained on it would just fit noise and land at/below a
-    majority-class or mean-value baseline. training/train_fusion.py is kept
-    for if a genuinely labeled tabular dataset becomes available later.
+    Facial/speech encoders (training/train_facial.py, training/train_speech.py)
+    are trained on real image/audio data (FER, RAVDESS) and gate `using_mock`.
+
+    The 4-class status classifier and depression/anxiety/stress regressors
+    (training/train_fusion.py) are a separate, independently-gated component:
+    the ORIGINAL tabular dataset (dataset/mental_health_multimodal.csv) has no
+    learnable relationship between its 18 features and its labels (verified via
+    correlation + random forest — see docs/model_placement.md), so these are
+    trained instead on dataset/mental_health_multimodal_synthetic_labels.csv,
+    produced by training/generate_synthetic_labels.py: the same 18 real feature
+    columns, with D/A/S scores and status regenerated from the app's own
+    heuristic formulas (backend/core/inference/) plus noise. That means these
+    models demonstrate the pipeline can learn a real relationship when one
+    exists — they approximate the hand-crafted heuristic (with realistic
+    noise/generalization error), not an externally validated clinical signal.
+    If their checkpoint files aren't present, `predict_status`/`predict_scores`
+    return None and callers (backend/api/routes/assessment.py) fall back to the
+    heuristic engine directly.
     """
 
     def __init__(self):
@@ -62,28 +71,44 @@ class ModelRegistry:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.facial_encoder = MockEncoder("facial", 128)
         self.speech_encoder = MockEncoder("speech", 128)
+        self.classifier: StatusClassifier | None = None
+        self.regressors: dict[str, ScoreRegressor] = {}
         self.numerical_dim = 18
 
     def load(self) -> None:
         root = settings.models_path
-        expected = {
+        encoder_paths = {
             "facial_encoder": root / "classification" / "facial_encoder.pt",
             "speech_encoder": root / "classification" / "speech_encoder.pt",
         }
-        present = {k: p for k, p in expected.items() if p.exists()}
-        self.loaded = present
-        self.using_mock = settings.use_mock_inference or len(present) < len(expected)
+        tabular_paths = {
+            "classifier": root / "classification" / "mental_health_classifier.pt",
+            "depression": root / "regression" / "depression_regressor.pt",
+            "anxiety": root / "regression" / "anxiety_regressor.pt",
+            "stress": root / "regression" / "stress_regressor.pt",
+        }
+        present_encoders = {k: p for k, p in encoder_paths.items() if p.exists()}
+        present_tabular = {k: p for k, p in tabular_paths.items() if p.exists()}
+        self.loaded = {**present_encoders, **present_tabular}
+
+        self.using_mock = settings.use_mock_inference or len(present_encoders) < len(encoder_paths)
         if not self.using_mock:
-            self._load_torch(present)
+            self._load_encoders(present_encoders)
+
+        if not settings.use_mock_inference and len(present_tabular) == len(tabular_paths):
+            self._load_tabular(present_tabular)
+
         self.ready = True
 
-    def _load_torch(self, present: dict[str, Path]) -> None:
+    def _load_encoders(self, present: dict[str, Path]) -> None:
         try:
             facial = FacialEncoder()
             facial.load_state_dict(torch.load(present["facial_encoder"], map_location=self.device))
             facial.eval().to(self.device)
 
-            speech = SpeechEncoder()
+            # num_classes must match the checkpoint's classifier head shape (unused by
+            # .encode(), which only runs backbone+attn+embed, but load_state_dict is strict).
+            speech = SpeechEncoder(num_classes=len(STATUS_LABELS))
             speech.load_state_dict(torch.load(present["speech_encoder"], map_location=self.device))
             speech.eval().to(self.device)
 
@@ -93,6 +118,45 @@ class ModelRegistry:
             self.using_mock = True
             self.facial_encoder = MockEncoder("facial", 128)
             self.speech_encoder = MockEncoder("speech", 128)
+
+    def _load_tabular(self, present: dict[str, Path]) -> None:
+        try:
+            classifier = StatusClassifier(num_classes=len(STATUS_LABELS))
+            classifier.load_state_dict(torch.load(present["classifier"], map_location=self.device))
+            classifier.eval().to(self.device)
+
+            regressors = {}
+            for name in ("depression", "anxiety", "stress"):
+                reg = ScoreRegressor()
+                reg.load_state_dict(torch.load(present[name], map_location=self.device))
+                reg.eval().to(self.device)
+                regressors[name] = reg
+
+            self.classifier = classifier
+            self.regressors = regressors
+        except Exception:
+            self.classifier = None
+            self.regressors = {}
+
+    def predict_status(self, numerical: np.ndarray) -> tuple[str, np.ndarray] | None:
+        """Trained 4-class classifier prediction, or None to fall back to the heuristic."""
+        if self.classifier is None:
+            return None
+        x = torch.from_numpy(np.asarray(numerical, dtype=np.float32)).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            probs = torch.softmax(self.classifier(x), dim=1).squeeze(0).cpu().numpy()
+        return STATUS_LABELS[int(probs.argmax())], probs
+
+    def predict_scores(self, numerical: np.ndarray) -> dict[str, float] | None:
+        """Trained depression/anxiety/stress regressor predictions, or None to fall back to the heuristic."""
+        if not self.regressors:
+            return None
+        x = torch.from_numpy(np.asarray(numerical, dtype=np.float32)).unsqueeze(0).to(self.device)
+        scores = {}
+        with torch.no_grad():
+            for name, model in self.regressors.items():
+                scores[name] = float(np.clip(model(x).item(), 0, 1)) * SCORE_MAX[name]
+        return scores
 
 
 registry = ModelRegistry()

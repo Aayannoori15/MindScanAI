@@ -85,9 +85,11 @@ async def run_assessment(
         },
         used,
     )
-    scores = estimate_scores(num_t, facial_emb, speech_emb)
+    predicted_scores = registry.predict_scores(num_t) if "numerical" in used else None
+    scores = predicted_scores or estimate_scores(num_t, facial_emb, speech_emb)
     hints = [h for h in (face_q.get("mapped_status"), (speech_q.get("ravdess") or {}).get("mapped_status")) if h]
-    status, probs = classify_status(fused, scores, hints=hints)
+    predicted_status = registry.predict_status(num_t) if "numerical" in used else None
+    status, probs = predicted_status or classify_status(fused, scores, hints=hints)
     timeline = summarize_timeline([p.model_dump() for p in req.emotion_timeline])
     shap = shap_numerical(req.numerical.model_dump() if req.numerical else None, scores)
     lime = lime_speech(speech_q, req.language_hint)
@@ -124,6 +126,7 @@ async def run_assessment(
         "status_probs": {k: float(v) for k, v in zip(STATUS_LABELS, probs)},
         "dataset_hints": {"facial": face_q.get("emotion"), "speech": (speech_q.get("ravdess") or {}).get("emotion")},
         "using_mock_models": registry.using_mock,
+        "using_trained_tabular_model": predicted_scores is not None and predicted_status is not None,
         "scores": {
             "depression": round(scores["depression"], 1),
             "anxiety": round(scores["anxiety"], 1),

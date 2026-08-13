@@ -4,30 +4,46 @@ architecture drift between what was trained and what gets loaded at inference.
 """
 
 import torch
+import torchvision
 from torch import nn
+from torch.nn import functional as F
+from transformers import Wav2Vec2Model
 
 EMBED_DIM = 128
 NUM_FEATURES = 18
 FUSION_HIDDEN = 32
 
+IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+WAV2VEC2_CHECKPOINT = "facebook/wav2vec2-base"
+
 
 class FacialEncoder(nn.Module):
-    """48x48 grayscale FER image -> 128-d embedding."""
+    """48x48 grayscale FER image -> 128-d embedding.
 
-    def __init__(self, num_classes: int = 7):
+    Backbone is an ImageNet-pretrained ResNet18: the 1-channel FER tile is
+    replicated to 3 channels and upsampled to 224x224 so the pretrained
+    filters (edges/texture/shape) transfer, then fine-tuned end-to-end on
+    FER. Resize/normalize happen inside encode() so callers keep passing the
+    same (1, 48, 48) 0-1 tensor the preprocessor already produces.
+    """
+
+    def __init__(self, num_classes: int = 7, pretrained: bool = True):
         super().__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 32, 3, padding=1), nn.BatchNorm2d(32), nn.ReLU(inplace=True), nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3, padding=1), nn.BatchNorm2d(64), nn.ReLU(inplace=True), nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, 3, padding=1), nn.BatchNorm2d(128), nn.ReLU(inplace=True), nn.MaxPool2d(2),
-        )
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.embed = nn.Linear(128, EMBED_DIM)
+        weights = torchvision.models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+        backbone = torchvision.models.resnet18(weights=weights)
+        self.backbone = nn.Sequential(*list(backbone.children())[:-1])  # drop the 1000-class fc
+        self.embed = nn.Linear(512, EMBED_DIM)
         self.classifier = nn.Linear(EMBED_DIM, num_classes)
+        self.register_buffer("mean", IMAGENET_MEAN)
+        self.register_buffer("std", IMAGENET_STD)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        z = self.features(x)
-        z = self.pool(z).flatten(1)
+        x = x.repeat(1, 3, 1, 1)
+        x = F.interpolate(x, size=224, mode="bilinear", align_corners=False)
+        x = (x - self.mean) / self.std
+        z = self.backbone(x).flatten(1)
         return torch.relu(self.embed(z))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -35,25 +51,89 @@ class FacialEncoder(nn.Module):
 
 
 class SpeechEncoder(nn.Module):
-    """Variable-length (T, 128) log-mel sequence -> 128-d embedding."""
+    """Raw 16kHz mono waveform -> 128-d embedding.
 
-    def __init__(self, num_classes: int = 8):
+    Backbone is facebook/wav2vec2-base, self-supervised-pretrained on ~960h
+    of English speech (LibriSpeech). By default only the last
+    `unfreeze_last_n_layers` transformer layers are trainable (plus the
+    pooling-attention + embedding + classifier head); the conv feature
+    extractor, the feature projection, and the earlier transformer layers
+    stay frozen. `unfreeze_last_n_layers=0` reduces to a pure linear probe on
+    frozen features. `attention_mask` marks real (non-padding) timesteps for
+    batched training; unbatched single-clip inference doesn't need it.
+
+    wav2vec2-base was pretrained on input normalized to zero mean / unit
+    variance per clip (`Wav2Vec2FeatureExtractor(do_normalize=True)`); that
+    normalization is applied inside encode()/forward() so callers just pass
+    the raw waveform the preprocessor produces.
+    """
+
+    def __init__(self, num_classes: int = 8, unfreeze_last_n_layers: int = 0):
         super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv1d(128, 128, 5, padding=2), nn.BatchNorm1d(128), nn.ReLU(inplace=True), nn.MaxPool1d(2),
-            nn.Conv1d(128, 128, 5, padding=2), nn.BatchNorm1d(128), nn.ReLU(inplace=True), nn.MaxPool1d(2),
-            nn.Conv1d(128, EMBED_DIM, 3, padding=1), nn.BatchNorm1d(EMBED_DIM), nn.ReLU(inplace=True),
-        )
-        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.backbone = Wav2Vec2Model.from_pretrained(WAV2VEC2_CHECKPOINT)
+        self.unfreeze_last_n_layers = unfreeze_last_n_layers
+        for p in self.backbone.parameters():
+            p.requires_grad = False
+        if unfreeze_last_n_layers > 0:
+            for layer in self.backbone.encoder.layers[-unfreeze_last_n_layers:]:
+                for p in layer.parameters():
+                    p.requires_grad = True
+        self.backbone.eval()
+        hidden = self.backbone.config.hidden_size  # 768
+        self.attn = nn.Linear(hidden, 1)
+        self.embed = nn.Linear(hidden, EMBED_DIM)
         self.classifier = nn.Linear(EMBED_DIM, num_classes)
 
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, T, 128) -> (B, 128, T)
-        z = self.conv(x.transpose(1, 2))
-        return self.pool(z).flatten(1)
+    def train(self, mode: bool = True):
+        super().train(mode)
+        self.backbone.train(mode and self.unfreeze_last_n_layers > 0)
+        return self
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.classifier(self.encode(x))
+    def trainable_backbone_parameters(self):
+        return [p for p in self.backbone.parameters() if p.requires_grad]
+
+    @staticmethod
+    def normalize_waveform(waveform: torch.Tensor, attention_mask: torch.Tensor | None = None) -> torch.Tensor:
+        """Per-clip zero-mean/unit-variance, matching wav2vec2's pretraining input."""
+        if attention_mask is None:
+            mean = waveform.mean(dim=1, keepdim=True)
+            var = waveform.var(dim=1, keepdim=True, unbiased=False)
+        else:
+            mask = attention_mask.float()
+            n = mask.sum(dim=1, keepdim=True).clamp(min=1)
+            mean = (waveform * mask).sum(dim=1, keepdim=True) / n
+            var = ((waveform - mean) ** 2 * mask).sum(dim=1, keepdim=True) / n
+        return (waveform - mean) / torch.sqrt(var + 1e-7)
+
+    def feature_mask_from_attention_mask(self, hidden_len: int, attention_mask: torch.Tensor) -> torch.Tensor:
+        """Downsample a raw-sample attention mask to the backbone's frame rate."""
+        return self.backbone._get_feature_vector_attention_mask(hidden_len, attention_mask)
+
+    def pool_hidden(self, hidden: torch.Tensor, feature_mask: torch.Tensor | None = None) -> torch.Tensor:
+        """Attention-pool a (B, T', 768) backbone hidden-state sequence -> 128-d embedding.
+
+        Exposed separately from encode() so training can cache a fully-frozen
+        backbone's output once per clip and train only this small pooling +
+        embedding head across epochs, instead of rerunning the 95M-param
+        backbone on every batch.
+        """
+        scores = self.attn(hidden)  # (B, T', 1)
+        if feature_mask is not None:
+            scores = scores.masked_fill(~feature_mask.unsqueeze(-1).bool(), float("-inf"))
+        weights = torch.softmax(scores, dim=1)
+        pooled = (hidden * weights).sum(dim=1)  # (B, 768)
+        return torch.relu(self.embed(pooled))
+
+    def encode(self, waveform: torch.Tensor, attention_mask: torch.Tensor | None = None) -> torch.Tensor:
+        waveform = self.normalize_waveform(waveform, attention_mask)
+        hidden = self.backbone(waveform, attention_mask=attention_mask).last_hidden_state  # (B, T', 768)
+        feature_mask = None
+        if attention_mask is not None:
+            feature_mask = self.feature_mask_from_attention_mask(hidden.size(1), attention_mask)
+        return self.pool_hidden(hidden, feature_mask)
+
+    def forward(self, waveform: torch.Tensor, attention_mask: torch.Tensor | None = None) -> torch.Tensor:
+        return self.classifier(self.encode(waveform, attention_mask))
 
 
 class FusionTrunk(nn.Module):
