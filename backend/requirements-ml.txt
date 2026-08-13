@@ -2,6 +2,8 @@
 # Not required for the mock-inference demo.
 
 torch>=2.2.0
+torchvision>=0.17.0
+transformers>=4.40.0
 librosa>=0.10.2
 shap>=0.44.0
 lime==0.2.0.1

@@ -32,8 +32,17 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class FERDataset(Dataset):
     def __init__(self, samples: list[tuple[Path, int]], train: bool):
         self.samples = samples
-        aug = [transforms.RandomHorizontalFlip(), transforms.RandomRotation(8)] if train else []
-        self.tf = transforms.Compose([*aug, transforms.ToTensor()])
+        if train:
+            aug = [
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(10),
+                transforms.ColorJitter(brightness=0.25, contrast=0.25),
+            ]
+            post = [transforms.ToTensor(), transforms.RandomErasing(p=0.25, scale=(0.02, 0.12))]
+        else:
+            aug = []
+            post = [transforms.ToTensor()]
+        self.tf = transforms.Compose([*aug, *post])
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -58,7 +67,7 @@ def build_samples() -> list[tuple[Path, int]]:
     return samples
 
 
-def main(epochs: int = 12, batch_size: int = 256, lr: float = 1e-3):
+def main(epochs: int = 18, batch_size: int = 128, lr: float = 3e-4):
     samples = build_samples()
     print(f"total images: {len(samples)}")
     labels = np.array([s[1] for s in samples])
