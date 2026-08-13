@@ -7,6 +7,8 @@ import ProgressStepper from "../components/assessment/ProgressStepper";
 import LoadingPulse from "../components/shared/LoadingPulse";
 import { setLanguageHint, setStep } from "../store/assessmentSlice";
 import { useAssessment } from "../hooks/useAssessment";
+import PageHeader from "../components/layout/PageHeader";
+import PageTransition, { Reveal } from "../components/layout/PageTransition";
 
 export default function Assessment() {
   const dispatch = useDispatch();
@@ -14,10 +16,15 @@ export default function Assessment() {
   const languageHint = useSelector((s) => s.assessment.languageHint);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <p className="eyebrow mb-2">Step {step + 1} of 3</p>
-      <h1 className="font-display text-3xl md:text-4xl text-white mb-2">Assessment</h1>
-      <p className="text-white/50 mb-8">Choose modalities, capture signals, then run fusion + XAI.</p>
+    <PageTransition className="max-w-4xl mx-auto">
+      <Reveal>
+        <PageHeader
+          eyebrow={`Step ${step + 1} of 3`}
+          title="Assessment"
+          lede="Choose modalities, capture signals, then run fusion + XAI."
+        />
+      </Reveal>
+      <div className="mt-8" />
       <ProgressStepper step={step} />
 
       {step === 0 && (
@@ -80,6 +87,6 @@ export default function Assessment() {
           </button>
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }

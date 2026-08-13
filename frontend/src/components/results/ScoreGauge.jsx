@@ -16,7 +16,7 @@ export default function ScoreGauge({ label, value, max, range }) {
 
   const pct = (shown / max) * 100;
   return (
-    <div className="glass-card p-5">
+    <div className="glass-card glass-hover p-5">
       <p className="text-sm text-white/50">{label}</p>
       <p className="text-3xl font-semibold mt-1 text-white">
         {shown.toFixed(1)}

@@ -27,17 +27,79 @@ body {
   background-size: 22px 22px;
 }
 
-/* Shared "dark glass" language extending the Landing hero across the app shell. */
+/*
+ * Ambient depth for the app shell.
+ *
+ * The Landing hero gets its cinematic quality from a lit subject sitting in
+ * layered darkness. Inner pages have no video, so the same read is built from
+ * fixed colour washes (teal high-left, amber mid-right, rose low-centre) plus
+ * a vignette. Fixed rather than scrolling, so the light feels like it comes
+ * from the room instead of the document.
+ */
+.ambient-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.ambient-stage::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 8% -10%, rgba(0, 191, 166, 0.16), transparent 60%),
+    radial-gradient(45rem 35rem at 105% 35%, rgba(245, 158, 11, 0.1), transparent 62%),
+    radial-gradient(50rem 40rem at 45% 115%, rgba(251, 113, 133, 0.09), transparent 60%);
+}
+
+/* Vignette, painted above the washes but behind content. */
+.ambient-stage::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 45%, rgba(4, 9, 18, 0.55) 100%);
+}
+
+/*
+ * Shared "dark glass" language extending the Landing hero across the app shell.
+ * Each surface is a gradient rather than a flat tint, with a bright hairline
+ * along the top edge — that highlight is what reads as a pane catching light
+ * instead of a grey rectangle.
+ */
 .glass-card {
-  @apply bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-2xl;
+  @apply relative backdrop-blur-md border border-white/10 rounded-2xl;
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035) 46%, rgba(255, 255, 255, 0.02));
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.09) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.9);
 }
 
 .glass-panel {
-  @apply bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-2xl;
+  @apply backdrop-blur-sm border border-white/10 rounded-2xl;
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset;
 }
 
 .glass-inset {
-  @apply bg-black/20 border border-white/10 rounded-xl;
+  @apply bg-black/25 border border-white/10 rounded-xl;
+  box-shadow: 0 2px 14px -6px rgba(0, 0, 0, 0.8) inset;
+}
+
+/* Opt-in lift for cards that represent something clickable or live. */
+.glass-hover {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms, box-shadow 220ms;
+}
+
+.glass-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 191, 166, 0.35);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.12) inset, 0 24px 50px -26px rgba(0, 0, 0, 0.95);
+}
+
+/* Teal edge-glow for the active nav item. */
+.nav-active-glow {
+  box-shadow: inset 2px 0 0 0 var(--teal), 0 0 24px -10px rgba(0, 191, 166, 0.7);
 }
 
 .eyebrow {
@@ -66,4 +128,52 @@ body {
 
 .field-input {
   @apply mt-1 w-full rounded-xl bg-white/[0.06] border border-white/15 px-3 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-teal/60 focus:ring-1 focus:ring-teal/40;
+}
+
+/*
+ * Page titles, matching the hero's scale and tight leading. The gradient stops
+ * short of full white at the baseline so long headings recede slightly, the
+ * way the hero text sits into its background.
+ */
+.page-title {
+  @apply font-display leading-[0.95] tracking-tight text-4xl md:text-5xl;
+  background-image: linear-gradient(180deg, #ffffff 25%, rgba(226, 240, 255, 0.72));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Thin teal rule used under eyebrows to echo the hero's horizontal rhythm. */
+.rule-teal {
+  height: 1px;
+  background-image: linear-gradient(90deg, rgba(0, 191, 166, 0.55), rgba(0, 191, 166, 0));
+}
+
+/* Slow drift on the ambient washes so the shell breathes rather than sits still. */
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -1.5%, 0) scale(1.04);
+  }
+}
+
+.ambient-stage::before {
+  animation: ambient-drift 26s ease-in-out infinite;
+}
+
+/*
+ * Honour the OS "reduce motion" setting: kill the drift and let framer-motion's
+ * useReducedMotion (which reads the same signal) flatten the page transitions.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-stage::before {
+    animation: none;
+  }
+
+  .glass-hover:hover {
+    transform: none;
+  }
 }
