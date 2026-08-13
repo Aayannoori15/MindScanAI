@@ -98,26 +98,26 @@ FEATURE_LABELS = {
     "GSR_Level": "GSR level",
 }
 
-# (mean, std) for z-scoring — mid-healthy operating point
+# (mean, std) for z-scoring — computed from dataset/mental_health_multimodal.csv (n=4000)
 FEATURE_STATS = {
-    "Sleep_Quality": (3.2, 1.0),
-    "Social_Engagement": (3.1, 1.0),
-    "Daily_App_Usage_Min": (180.0, 90.0),
-    "Typing_Speed_WPM": (45.0, 15.0),
-    "Session_Frequency": (24.0, 12.0),
-    "Idle_Time_Min": (90.0, 50.0),
-    "Facial_Emotion_Variance": (2.4, 1.4),
-    "Eye_Blink_Rate": (17.0, 6.0),
-    "Smile_Intensity": (0.45, 0.22),
-    "Head_Motion_Index": (4.0, 2.5),
-    "MFCC_Mean": (0.0, 12.0),
-    "MFCC_Variance": (18.0, 10.0),
-    "Pitch_Mean": (160.0, 45.0),
-    "Speech_Rate": (2.8, 0.8),
-    "Heart_Rate_BPM": (74.0, 12.0),
-    "HRV_Index": (52.0, 18.0),
-    "Skin_Temperature": (33.2, 0.8),
-    "GSR_Level": (8.0, 5.0),
+    "Sleep_Quality": (3.0072, 1.4196),
+    "Social_Engagement": (2.9558, 1.4161),
+    "Daily_App_Usage_Min": (250.7337, 131.3240),
+    "Typing_Speed_WPM": (53.6620, 20.1141),
+    "Session_Frequency": (10.1335, 5.3981),
+    "Idle_Time_Min": (92.0035, 50.6416),
+    "Facial_Emotion_Variance": (0.5504, 0.2577),
+    "Eye_Blink_Rate": (21.9405, 7.2277),
+    "Smile_Intensity": (0.4987, 0.2894),
+    "Head_Motion_Index": (0.5009, 0.2903),
+    "MFCC_Mean": (-0.4357, 28.9122),
+    "MFCC_Variance": (15.3979, 8.3718),
+    "Pitch_Mean": (190.5683, 63.2144),
+    "Speech_Rate": (4.0147, 1.1533),
+    "Heart_Rate_BPM": (86.6778, 18.7176),
+    "HRV_Index": (55.4815, 26.3150),
+    "Skin_Temperature": (34.5053, 1.4462),
+    "GSR_Level": (2.5254, 1.4259),
 }
 
 # SHAP-style signed weights (positive = increases burden)
