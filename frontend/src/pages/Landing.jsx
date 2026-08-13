@@ -1,45 +1,73 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { ArrowRight, Info, LayoutDashboard, Radio, ScanFace } from "lucide-react";
+import PingPongVideo from "../components/layout/PingPongVideo";
+
+const LINKS = [
+  { to: "/assessment", icon: ScanFace, label: "Assessment" },
+  { to: "/realtime", icon: Radio, label: "Live" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Trends" },
+  { to: "/about", icon: Info, label: "About" },
+];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-navy text-white neural-grid">
-      <header className="flex items-center justify-between px-6 md:px-12 py-6">
-        <span className="font-display text-2xl">MindScan AI</span>
-        <nav className="flex gap-6 text-sm text-slate-300">
-          <Link to="/about">About</Link>
-          <Link to="/assessment" className="text-teal">
-            Start
-          </Link>
-        </nav>
-      </header>
-      <main className="px-6 md:px-12 py-16 md:py-24 max-w-5xl">
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="font-display text-4xl md:text-6xl leading-tight"
-        >
-          Explainable multimodal screening for psychiatric evaluation.
-        </motion.h1>
-        <p className="mt-6 text-slate-300 max-w-2xl text-lg">
-          Face, speech, and 18 physiological signals — fused with confidence scores, Grad-CAM, SHAP, and a clinician-ready
-          report. Decision support, never a diagnosis.
-        </p>
-        <div className="mt-10 flex flex-wrap gap-4">
-          <Link to="/assessment" className="px-6 py-3 rounded-full bg-teal text-navy font-medium">
-            Begin assessment
-          </Link>
-          <Link to="/realtime" className="px-6 py-3 rounded-full border border-white/20">
-            Live emotion track
-          </Link>
-        </div>
-        <svg className="mt-16 w-full max-w-lg opacity-80" viewBox="0 0 400 120" fill="none">
-          <path d="M0 60 C40 20, 80 100, 120 60 S200 20, 240 60 S320 100, 400 60" stroke="#00BFA6" strokeWidth="1.5" />
-          <circle cx="120" cy="60" r="4" fill="#00BFA6" />
-          <circle cx="240" cy="60" r="4" fill="#F59E0B" />
-          <circle cx="320" cy="80" r="4" fill="#FB7185" />
-        </svg>
-      </main>
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-[#111318]">
+      <PingPongVideo src="/assets/landing-bg.mp4" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+
+      <div className="relative z-10 h-full flex flex-col justify-between px-6 md:px-14 py-8 md:py-12">
+        <header className="flex items-center justify-between">
+          <span className="font-display text-xl md:text-2xl text-white tracking-tight">MindScan AI</span>
+          <nav className="hidden sm:flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 p-1">
+            {LINKS.map(({ to, icon: Icon, label }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-white/90 hover:bg-white/10 hover:text-teal transition"
+              >
+                <Icon size={15} />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </header>
+
+        <main className="max-w-xl pb-6">
+          <p className="text-teal text-xs md:text-sm tracking-[0.22em] uppercase mb-4">Hack2Health · decision support</p>
+          <h1 className="font-display text-5xl md:text-7xl text-white leading-[0.95]">MindScan AI</h1>
+          <p className="mt-5 text-white/80 text-base md:text-lg leading-relaxed max-w-md">
+            Measured with clarity. Face, speech, and physiology — fused, explained, never diagnosed.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              to="/assessment"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-teal text-navy font-medium hover:brightness-110 transition"
+            >
+              Begin assessment
+              <ArrowRight size={18} />
+            </Link>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center px-6 py-3 rounded-full border border-white/25 text-white hover:bg-white/10 transition"
+            >
+              Open dashboard
+            </Link>
+          </div>
+          <nav className="sm:hidden flex gap-2 mt-8">
+            {LINKS.map(({ to, icon: Icon, label }) => (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                className="h-11 w-11 rounded-full bg-white/10 border border-white/15 text-white grid place-items-center"
+              >
+                <Icon size={16} />
+              </Link>
+            ))}
+          </nav>
+        </main>
+      </div>
     </div>
   );
 }
