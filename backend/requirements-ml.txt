@@ -1,0 +1,12 @@
+# Optional: load teammate .pt weights, RAVDESS DSP, Grad-CAM, SHAP, PDF export.
+# Not required for the mock-inference demo.
+
+torch>=2.2.0
+librosa>=0.10.2
+shap>=0.44.0
+lime==0.2.0.1
+weasyprint>=62.0
+opencv-python-headless>=4.10.0
+grad-cam>=1.5.2
+soundfile>=0.12.1
+scipy>=1.11.0

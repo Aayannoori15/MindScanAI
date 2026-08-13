@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+mindscan.db
+*.pt
+node_modules/
+frontend/dist/
+.DS_Store
+.idea/
+.vscode/

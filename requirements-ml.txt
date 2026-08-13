@@ -1,0 +1,4 @@
+# Optional ML / DSP / PDF stack for trained .pt inference
+#   pip install -r requirements-ml.txt
+
+-r backend/requirements-ml.txt

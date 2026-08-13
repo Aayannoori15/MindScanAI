@@ -1,0 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0f1b2d;
+  --teal: #00bfa6;
+  --amber: #f59e0b;
+  --rose: #fb7185;
+  --mist: #f8fafc;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-mist text-navy font-sans antialiased;
+}
+
+.neural-grid {
+  background-image: radial-gradient(rgba(0, 191, 166, 0.12) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
