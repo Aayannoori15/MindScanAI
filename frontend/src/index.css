@@ -4,12 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Brand tokens must stay in step with tailwind.config.js, which hard-codes the
+ * same hexes for the `navy`/`teal`/`amber`/`rose`/`mist` utility classes. If
+ * these drift, `text-teal` and `var(--teal)` render as different colours.
+ */
 :root {
   --navy: #0f1b2d;
   --teal: #00bfa6;
   --amber: #f59e0b;
   --rose: #fb7185;
   --mist: #f8fafc;
+
+  /* Neutral ramp retained from the monochrome pass; used by .btn-drop below. */
+  --ink: #0a0a0a;
+  --charcoal: #1a1a1a;
+  --steel: #6b7280;
+  --snow: #ffffff;
 }
 
 html,
@@ -22,9 +33,61 @@ body {
   @apply bg-navy text-mist font-sans antialiased;
 }
 
-.neural-grid {
-  background-image: radial-gradient(rgba(0, 191, 166, 0.12) 1px, transparent 1px);
-  background-size: 22px 22px;
+/*
+ * Drop-shaped buttons from the monochrome UI pass. Retained because
+ * pages/Landing.jsx styles its hero CTAs with them; the dark app shell uses
+ * .pill-btn-* instead.
+ */
+.btn-drop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px 999px 999px 28%;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+
+.btn-drop:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.btn-drop:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-drop-solid {
+  background: #0a0a0a;
+  color: #fff;
+}
+
+.btn-drop-solid:hover {
+  background: #262626;
+}
+
+.btn-drop-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.btn-drop-ghost:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-drop-light {
+  background: #fff;
+  color: #0a0a0a;
+  border: 1px solid #e5e5e5;
+}
+
+.btn-drop-light:hover {
+  background: #f4f4f5;
+  border-color: #a3a3a3;
 }
 
 /*
