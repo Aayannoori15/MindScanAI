@@ -8,6 +8,10 @@ librosa>=0.10.2
 shap>=0.44.0
 lime==0.2.0.1
 weasyprint>=62.0
+# Required for correct facial results: backend/core/preprocessors/facial_preprocessor.py
+# uses cv2.FaceDetectorYN to crop the face before FER inference. Without it the
+# code falls back to a centre crop, and an uncropped webcam frame is enough to
+# make a clearly smiling face classify as "fear".
 opencv-python-headless>=4.10.0
 grad-cam>=1.5.2
 soundfile>=0.12.1

@@ -1,24 +1,29 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Dataset medians (dataset/mental_health_multimodal.csv), so a fresh
+// assessment starts at a neutral in-distribution baseline. Several previous
+// defaults sat outside the real feature range entirely (Head_Motion_Index 4.2
+// vs. a 0..1 feature, GSR_Level 10 vs. 0.1..5), which z-scored to +12 / +5 SD
+// and saturated the stress score at its cap on every single submission.
 const initialNumerical = {
   Sleep_Quality: 3,
   Social_Engagement: 3,
-  Daily_App_Usage_Min: 180,
-  Typing_Speed_WPM: 42,
-  Session_Frequency: 22,
-  Idle_Time_Min: 95,
-  Facial_Emotion_Variance: 2.4,
-  Eye_Blink_Rate: 18,
-  Smile_Intensity: 0.4,
-  Head_Motion_Index: 4.2,
-  MFCC_Mean: 0,
-  MFCC_Variance: 16,
-  Pitch_Mean: 165,
-  Speech_Rate: 2.7,
-  Heart_Rate_BPM: 78,
-  HRV_Index: 48,
-  Skin_Temperature: 33.1,
-  GSR_Level: 10,
+  Daily_App_Usage_Min: 248,
+  Typing_Speed_WPM: 53,
+  Session_Frequency: 10,
+  Idle_Time_Min: 91,
+  Facial_Emotion_Variance: 0.55,
+  Eye_Blink_Rate: 22,
+  Smile_Intensity: 0.5,
+  Head_Motion_Index: 0.5,
+  MFCC_Mean: -0.9,
+  MFCC_Variance: 15.4,
+  Pitch_Mean: 192,
+  Speech_Rate: 4,
+  Heart_Rate_BPM: 87,
+  HRV_Index: 55,
+  Skin_Temperature: 34.5,
+  GSR_Level: 2.5,
 };
 
 const slice = createSlice({

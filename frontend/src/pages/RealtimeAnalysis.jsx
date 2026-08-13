@@ -21,14 +21,17 @@ export default function RealtimeAnalysis() {
   return (
     <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
       <div>
-        <h1 className="font-display text-3xl mb-4">Live analysis</h1>
+        <p className="eyebrow mb-1">Real-time</p>
+        <h1 className="font-display text-3xl md:text-4xl text-white mb-4">Live analysis</h1>
         <LiveFaceAnalysis onEmotions={onEmotions} />
         <div className="mt-4">
           <SpeechWaveform active />
         </div>
       </div>
-      <div className="bg-white rounded-2xl p-5 border border-slate-100">
-        <p className="text-sm font-medium mb-4">Emotion probabilities {last?.dominant ? `· ${last.dominant}` : ""}</p>
+      <div className="glass-card p-5">
+        <p className="text-sm font-medium mb-4 text-white">
+          Emotion probabilities {last?.dominant ? `· ${last.dominant}` : ""}
+        </p>
         <EmotionMeter emotions={shown} />
       </div>
     </div>

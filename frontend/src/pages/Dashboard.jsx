@@ -17,12 +17,13 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="font-display text-3xl">Trend dashboard</h1>
-      <p className="text-slate-500">Longitudinal depression, anxiety, and stress across sessions.</p>
+      <p className="eyebrow">Longitudinal view</p>
+      <h1 className="font-display text-3xl md:text-4xl text-white -mt-2">Trend dashboard</h1>
+      <p className="text-white/50 -mt-4">Longitudinal depression, anxiety, and stress across sessions.</p>
       {trends?.available && (
         <div className="flex gap-3 text-sm">
           {["depression", "anxiety", "stress"].map((k) => (
-            <span key={k} className="px-3 py-1 rounded-full bg-white border capitalize">
+            <span key={k} className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-white/80 capitalize">
               {k}: {trends[k]}
             </span>
           ))}

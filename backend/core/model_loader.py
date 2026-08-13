@@ -4,7 +4,13 @@ import numpy as np
 import torch
 
 from backend.config import settings
-from backend.core.dataset_spec import SCORE_MAX, STATUS_LABELS
+from backend.core.dataset_spec import (
+    FER_EMOTIONS,
+    FER_TO_STATUS,
+    SCORE_MAX,
+    STATUS_LABELS,
+    STATUS_SEVERITY,
+)
 from backend.models.architectures import FacialEncoder, ScoreRegressor, SpeechEncoder, StatusClassifier
 
 
@@ -39,6 +45,13 @@ class TorchEncoder:
         with torch.no_grad():
             emb = self.model.encode(x)
         return emb.squeeze(0).cpu().numpy()
+
+    def classify(self, features: np.ndarray) -> np.ndarray:
+        """Class probabilities from the encoder's trained classifier head."""
+        x = torch.from_numpy(np.asarray(features, dtype=np.float32)).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            probs = torch.softmax(self.model(x), dim=1)
+        return probs.squeeze(0).cpu().numpy()
 
 
 class ModelRegistry:
@@ -157,6 +170,54 @@ class ModelRegistry:
             for name, model in self.regressors.items():
                 scores[name] = float(np.clip(model(x).item(), 0, 1)) * SCORE_MAX[name]
         return scores
+
+    def predict_facial_emotion(self, face_tensor: np.ndarray) -> dict | None:
+        """Real 7-class FER emotion prediction from the trained ResNet18 classifier head.
+
+        Returns the emotion name, its confidence, the full probability
+        distribution, and a `distress` scalar in 0..1 -- the probability mass
+        the model puts on negative expressions, weighted by how severe
+        FER_TO_STATUS considers each one. That scalar is what scoring should
+        consume: unlike the old mean-of-embedding proxy it actually falls when
+        the person smiles and rises when they look angry/afraid.
+        """
+        if self.using_mock or not isinstance(self.facial_encoder, TorchEncoder):
+            return None
+        probs = self.facial_encoder.classify(face_tensor)
+        idx = int(probs.argmax())
+        emotion = FER_EMOTIONS[idx]
+        by_emotion = {FER_EMOTIONS[i]: float(p) for i, p in enumerate(probs)}
+        distress = sum(by_emotion[e] * STATUS_SEVERITY[FER_TO_STATUS[e]] for e in by_emotion)
+        return {
+            "emotion": emotion,
+            "confidence": float(probs[idx]),
+            "probabilities": by_emotion,
+            "mapped_status": FER_TO_STATUS[emotion],
+            "distress": float(distress),
+        }
+
+    def predict_speech_emotion(self, speech_tensor: np.ndarray) -> dict | None:
+        """Real emotion prediction from the trained wav2vec2 classifier head.
+
+        The deployed speech checkpoint is trained on the 4 RAVDESS_TO_STATUS
+        classes (Healthy/Mild/Moderate/Severe), not the 8 raw emotions, so the
+        head's outputs are read directly as status probabilities.
+        """
+        if self.using_mock or not isinstance(self.speech_encoder, TorchEncoder):
+            return None
+        probs = self.speech_encoder.classify(speech_tensor)
+        if len(probs) != len(STATUS_LABELS):
+            return None
+        idx = int(probs.argmax())
+        by_status = {STATUS_LABELS[i]: float(p) for i, p in enumerate(probs)}
+        distress = sum(by_status[s] * STATUS_SEVERITY[s] for s in by_status)
+        return {
+            "status": STATUS_LABELS[idx],
+            "confidence": float(probs[idx]),
+            "probabilities": by_status,
+            "mapped_status": STATUS_LABELS[idx],
+            "distress": float(distress),
+        }
 
 
 registry = ModelRegistry()

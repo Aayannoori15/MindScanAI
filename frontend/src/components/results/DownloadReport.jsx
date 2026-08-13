@@ -6,10 +6,10 @@ export default function DownloadReport({ result }) {
   };
   return (
     <div className="flex flex-wrap gap-3">
-      <button onClick={serverPdf} className="px-4 py-2 rounded-xl bg-navy text-white text-sm">
+      <button onClick={serverPdf} className="pill-btn-solid">
         Download clinical PDF
       </button>
-      <button onClick={() => downloadClientPdf(result)} className="px-4 py-2 rounded-xl border border-slate-200 text-sm">
+      <button onClick={() => downloadClientPdf(result)} className="pill-btn-ghost">
         Quick client PDF
       </button>
     </div>

@@ -16,14 +16,14 @@ export default function ScoreGauge({ label, value, max, range }) {
 
   const pct = (shown / max) * 100;
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-3xl font-semibold mt-1">
+    <div className="glass-card p-5">
+      <p className="text-sm text-white/50">{label}</p>
+      <p className="text-3xl font-semibold mt-1 text-white">
         {shown.toFixed(1)}
-        <span className="text-base text-slate-400 font-normal">/{max}</span>
+        <span className="text-base text-white/35 font-normal">/{max}</span>
       </p>
-      <p className="text-xs text-slate-500 mt-1">{range} range</p>
-      <div className="h-2 bg-slate-100 rounded-full mt-3 overflow-hidden">
+      <p className="text-xs text-white/40 mt-1">{range} range</p>
+      <div className="h-2 bg-white/10 rounded-full mt-3 overflow-hidden">
         <div className="h-full bg-teal rounded-full" style={{ width: `${pct}%` }} />
       </div>
     </div>

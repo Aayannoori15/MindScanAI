@@ -15,24 +15,25 @@ export default function Assessment() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="font-display text-3xl mb-2">Assessment</h1>
-      <p className="text-slate-500 mb-6">Choose modalities, capture signals, then run fusion + XAI.</p>
+      <p className="eyebrow mb-2">Step {step + 1} of 3</p>
+      <h1 className="font-display text-3xl md:text-4xl text-white mb-2">Assessment</h1>
+      <p className="text-white/50 mb-8">Choose modalities, capture signals, then run fusion + XAI.</p>
       <ProgressStepper step={step} />
 
       {step === 0 && (
         <div className="space-y-6">
           <ModalitySelector />
-          <label className="block text-sm">
+          <label className="field-label max-w-sm">
             Speech language hint
             <select
-              className="mt-1 w-full border rounded-xl p-2"
+              className="field-input"
               value={languageHint}
               onChange={(e) => dispatch(setLanguageHint(e.target.value))}
             >
-              <option value="language-agnostic">Language-agnostic (prosody)</option>
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="ta">Tamil</option>
+              <option className="bg-navy" value="language-agnostic">Language-agnostic (prosody)</option>
+              <option className="bg-navy" value="en">English</option>
+              <option className="bg-navy" value="hi">Hindi</option>
+              <option className="bg-navy" value="ta">Tamil</option>
             </select>
           </label>
         </div>
@@ -51,9 +52,9 @@ export default function Assessment() {
       )}
 
       {step === 2 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-3">
+        <div className="glass-card p-6 space-y-3 text-white">
           <p>Modalities: {modalities.join(", ") || "none"}</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-white/50">
             Inference uses teammate weights when present; otherwise a documented mock fusion so the demo never hard-fails.
           </p>
           {error && <p className="text-rose text-sm">{error}</p>}
@@ -65,16 +66,16 @@ export default function Assessment() {
         <button
           disabled={step === 0}
           onClick={() => dispatch(setStep(Math.max(0, step - 1)))}
-          className="px-4 py-2 rounded-xl border disabled:opacity-40"
+          className="pill-btn-ghost"
         >
           Back
         </button>
         {step < 2 ? (
-          <button onClick={() => dispatch(setStep(step + 1))} className="px-5 py-2 rounded-xl bg-teal text-navy font-medium">
+          <button onClick={() => dispatch(setStep(step + 1))} className="pill-btn-primary">
             Continue
           </button>
         ) : (
-          <button onClick={submit} disabled={loading || !modalities.length} className="px-5 py-2 rounded-xl bg-navy text-white">
+          <button onClick={submit} disabled={loading || !modalities.length} className="pill-btn-solid">
             Run MindScan
           </button>
         )}
