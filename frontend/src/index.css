@@ -19,10 +19,51 @@ body,
 }
 
 body {
-  @apply bg-mist text-navy font-sans antialiased;
+  @apply bg-navy text-mist font-sans antialiased;
 }
 
 .neural-grid {
   background-image: radial-gradient(rgba(0, 191, 166, 0.12) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+/* Shared "dark glass" language extending the Landing hero across the app shell. */
+.glass-card {
+  @apply bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-2xl;
+}
+
+.glass-panel {
+  @apply bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-2xl;
+}
+
+.glass-inset {
+  @apply bg-black/20 border border-white/10 rounded-xl;
+}
+
+.eyebrow {
+  @apply text-teal text-xs tracking-[0.22em] uppercase;
+}
+
+.pill-btn {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition disabled:opacity-40 disabled:pointer-events-none;
+}
+
+.pill-btn-primary {
+  @apply pill-btn bg-teal text-navy hover:brightness-110;
+}
+
+.pill-btn-ghost {
+  @apply pill-btn border border-white/20 text-white hover:bg-white/10;
+}
+
+.pill-btn-solid {
+  @apply pill-btn bg-white text-navy hover:bg-white/90;
+}
+
+.field-label {
+  @apply block text-sm text-white/70;
+}
+
+.field-input {
+  @apply mt-1 w-full rounded-xl bg-white/[0.06] border border-white/15 px-3 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-teal/60 focus:ring-1 focus:ring-teal/40;
 }

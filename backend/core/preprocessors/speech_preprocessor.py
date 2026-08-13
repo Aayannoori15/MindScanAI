@@ -1,13 +1,53 @@
+from io import BytesIO
+
 import numpy as np
 
 from backend.core.dataset_spec import parse_ravdess_filename
 
 
-def _to_pcm(audio_bytes: bytes) -> np.ndarray:
+def _raw_pcm(audio_bytes: bytes) -> np.ndarray:
+    """Interpret headerless bytes as PCM -- the browser recorder's raw capture."""
     if len(audio_bytes) % 2 == 0:
         return np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
     raw = np.frombuffer(audio_bytes, dtype=np.uint8).astype(np.float32)
     return (raw - 128) / 128.0
+
+
+def _to_pcm(audio_bytes: bytes, sample_rate: int = 16000) -> tuple[np.ndarray, bool]:
+    """Decode arbitrary audio to mono float32 at `sample_rate`.
+
+    Container formats must be decoded, not reinterpreted: a RAVDESS .wav is
+    48kHz with a 44-byte RIFF header, so treating its bytes as headerless
+    16kHz PCM feeds the model 3x-wrong-speed audio prefixed with header
+    garbage. That mismatch alone dropped the speech checkpoint from 67.1%
+    (training-time eval) to 25.4% at inference on the same clips.
+
+    Returns (samples, decoded) -- `decoded` is False when we fell back to
+    raw-PCM interpretation, which is the correct path for the browser's
+    headerless 16kHz capture.
+    """
+    try:
+        import soundfile as sf
+
+        data, sr = sf.read(BytesIO(audio_bytes), dtype="float32", always_2d=True)
+        mono = data.mean(axis=1)
+        if sr != sample_rate:
+            import librosa
+
+            mono = librosa.resample(mono, orig_sr=sr, target_sr=sample_rate)
+        return mono.astype(np.float32), True
+    except Exception:
+        pass
+
+    try:
+        import librosa
+
+        mono, _ = librosa.load(BytesIO(audio_bytes), sr=sample_rate, mono=True)
+        return mono.astype(np.float32), True
+    except Exception:
+        pass
+
+    return _raw_pcm(audio_bytes), False
 
 
 def preprocess_speech(
@@ -25,7 +65,9 @@ def preprocess_speech(
         flags.append("missing_speech")
         return np.zeros(sample_rate, dtype=np.float32), {"quality": 0.0, "flags": flags, **extra}
 
-    pcm = _to_pcm(audio_bytes)
+    pcm, decoded = _to_pcm(audio_bytes, sample_rate)
+    if not decoded:
+        flags.append("raw_pcm_assumed")
     rms = float(np.sqrt(np.mean(pcm**2) + 1e-12))
     if rms < 0.01:
         flags.append("quiet_audio")
@@ -56,7 +98,11 @@ def preprocess_speech(
     except Exception:
         flags.append("librosa_fallback")
 
-    quality = 1.0 - 0.22 * len([f for f in flags if f != "librosa_fallback"])
+    # "raw_pcm_assumed" is the expected path for the browser's headerless
+    # capture and "librosa_fallback" is informational -- neither is a defect,
+    # so neither should reduce the confidence we report for this modality.
+    _informational = {"librosa_fallback", "raw_pcm_assumed"}
+    quality = 1.0 - 0.22 * len([f for f in flags if f not in _informational])
     extra.update(
         {
             "MFCC_Mean": mfcc_mean,

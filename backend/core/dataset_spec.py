@@ -11,6 +11,16 @@ STATUS_LABELS = ["Healthy", "Mild_Stress", "Moderate_Stress", "Severe_Stress"]
 
 SCORE_MAX = {"depression": 34.0, "anxiety": 24.0, "stress": 39.0}
 
+# Ordinal severity of each status on a 0..1 scale. Lets a probability
+# distribution over statuses collapse into a single "distress" scalar
+# (sum of p(status) * severity) that scoring can consume.
+STATUS_SEVERITY = {
+    "Healthy": 0.0,
+    "Mild_Stress": 1 / 3,
+    "Moderate_Stress": 2 / 3,
+    "Severe_Stress": 1.0,
+}
+
 # FER folder / class index → emotion name
 FER_EMOTIONS = {
     0: "angry",

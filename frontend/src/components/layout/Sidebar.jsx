@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { Activity, LayoutDashboard, ScanFace, Radio, Info } from "lucide-react";
 import TopBar from "./TopBar";
 
@@ -11,20 +11,20 @@ const links = [
 
 export default function PageContainer() {
   return (
-    <div className="min-h-screen flex bg-mist">
-      <aside className="hidden md:flex w-60 flex-col bg-navy text-white p-6">
-        <div className="flex items-center gap-2 mb-10">
-          <Activity className="text-teal" />
-          <span className="font-display text-xl">MindScan</span>
-        </div>
+    <div className="min-h-screen flex bg-navy neural-grid">
+      <aside className="hidden md:flex w-60 flex-col shrink-0 bg-black/20 border-r border-white/10 text-white p-6">
+        <Link to="/" className="flex items-center gap-2 mb-10">
+          <Activity className="text-teal" size={20} />
+          <span className="font-display text-xl tracking-tight">MindScan</span>
+        </Link>
         <nav className="space-y-1">
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-                  isActive ? "bg-white/10 text-teal" : "text-slate-300 hover:bg-white/5"
+                `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                  isActive ? "bg-white/10 text-teal" : "text-white/60 hover:bg-white/5 hover:text-white/90"
                 }`
               }
             >
@@ -33,7 +33,7 @@ export default function PageContainer() {
             </NavLink>
           ))}
         </nav>
-        <p className="mt-auto text-[11px] text-slate-400 leading-relaxed">
+        <p className="mt-auto text-[11px] text-white/35 leading-relaxed">
           Decision support only. Not a clinical diagnosis.
         </p>
       </aside>

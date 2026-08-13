@@ -8,13 +8,17 @@ export default function TrendChart({ sessions = [] }) {
     stress: s.stress_score,
   }));
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-100 h-80">
-      <p className="text-sm font-medium mb-2">Longitudinal D / A / S</p>
+    <div className="glass-card p-5 h-80">
+      <p className="text-sm font-medium mb-2 text-white">Longitudinal D / A / S</p>
       <ResponsiveContainer>
         <LineChart data={data}>
-          <XAxis dataKey="t" />
-          <YAxis />
-          <Tooltip />
+          <XAxis dataKey="t" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} />
+          <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} />
+          <Tooltip
+            contentStyle={{ background: "#0F1B2D", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12 }}
+            labelStyle={{ color: "white" }}
+            itemStyle={{ color: "white" }}
+          />
           <Line type="monotone" dataKey="depression" stroke="#7c8cff" dot={false} />
           <Line type="monotone" dataKey="anxiety" stroke="#F59E0B" dot={false} />
           <Line type="monotone" dataKey="stress" stroke="#FB7185" dot={false} />

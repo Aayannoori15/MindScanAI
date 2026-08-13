@@ -1,13 +1,51 @@
 import json
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-import numpy as np
+from fastapi import APIRouter, File, UploadFile, WebSocket, WebSocketDisconnect
+
+from backend.core.model_loader import registry
+from backend.core.preprocessors.facial_preprocessor import preprocess_face
 
 router = APIRouter()
 
 
+@router.post("/analyze-face")
+async def analyze_face(frame: UploadFile = File(...)):
+    """Real 7-class FER emotion probabilities for a single webcam frame.
+
+    The browser can't run the model, so live analysis posts frames here and
+    gets back the trained classifier's actual output. Returns available=False
+    rather than fabricating a distribution when no trained encoder is loaded.
+    """
+    image_bytes = await frame.read()
+    face_t, quality = preprocess_face(image_bytes)
+    pred = registry.predict_facial_emotion(face_t)
+    if not pred:
+        return {
+            "available": False,
+            "reason": "Trained facial encoder unavailable (mock mode).",
+            "quality": quality.get("quality", 0.0),
+            "flags": quality.get("flags", []),
+        }
+    return {
+        "available": True,
+        "emotions": pred["probabilities"],
+        "dominant": pred["emotion"],
+        "confidence": pred["confidence"],
+        "mapped_status": pred["mapped_status"],
+        "distress": pred["distress"],
+        "quality": quality.get("quality", 0.0),
+        "flags": quality.get("flags", []),
+    }
+
+
 @router.websocket("/ws")
 async def realtime_emotion(ws: WebSocket):
+    """Normalizes and smooths client-supplied emotion distributions.
+
+    The client is expected to send real probabilities (from /analyze-face).
+    A payload with no emotions is echoed back as unavailable -- this endpoint
+    never invents a distribution to fill the gap.
+    """
     await ws.accept()
     try:
         while True:
@@ -20,18 +58,14 @@ async def realtime_emotion(ws: WebSocket):
 
             emotions = payload.get("emotions") or {}
             if not emotions:
-                # Lightweight server-side smoothing of a dummy distribution if client sends audio energy only
-                energy = float(payload.get("energy", 0.2))
-                rng = np.random.default_rng(int(energy * 1000) % 2**32)
-                keys = ["neutral", "calm", "happy", "sad", "angry", "fearful", "disgust", "surprised"]
-                vec = rng.random(len(keys))
-                vec[0] += 1.2
-                vec = vec / vec.sum()
-                emotions = {k: float(v) for k, v in zip(keys, vec)}
+                await ws.send_json({"t": payload.get("t"), "emotions": {}, "dominant": None, "available": False})
+                continue
 
             total = sum(emotions.values()) or 1.0
             probs = {k: v / total for k, v in emotions.items()}
             dominant = max(probs, key=probs.get)
-            await ws.send_json({"t": payload.get("t"), "emotions": probs, "dominant": dominant})
+            await ws.send_json(
+                {"t": payload.get("t"), "emotions": probs, "dominant": dominant, "available": True}
+            )
     except WebSocketDisconnect:
         return

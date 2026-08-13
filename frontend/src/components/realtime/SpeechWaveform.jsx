@@ -24,5 +24,5 @@ export default function SpeechWaveform({ active }) {
     return () => cancelAnimationFrame(raf);
   }, [active]);
 
-  return <canvas ref={ref} width={640} height={80} className="w-full rounded-xl bg-navy/90" />;
+  return <canvas ref={ref} width={640} height={80} className="w-full rounded-xl glass-inset" />;
 }
